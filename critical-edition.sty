@@ -519,6 +519,9 @@
 	\act
 }
 
+\newcommand{\Asamelineseparator}{\char"02016}
+\newcommand{\Alemmaseparator}{]}
+
 \newcommand{\print@footA@entry}[2]{%
 	\begingroup
 	\footfontsize
@@ -541,7 +544,7 @@
 		\def\print@ref{\textbf{\line@ref}}%
 	}{%
 		\ifcsequal{last@printed@line}{footA@line@#1@#2}{%
-			\def\print@ref{\textbf{\char"02016}\enskip}%
+			\def\print@ref{\textbf{\Asamelineseparator}\enskip}%
 		}{%
 			\def\print@ref{\textbf{\line@ref}}%
 		}%
@@ -555,7 +558,7 @@
 	\ifcsvoid{footA@lem@#1@#2}{%
 		\the@variant
 	}{%
-		\the@lemma] \the@variant
+		\the@lemma\Alemmaseparator\enskip \the@variant
 	}%
 	\quad\relax
 	\endgroup
