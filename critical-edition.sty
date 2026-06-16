@@ -1,0 +1,700 @@
+%% critical-edition.sty
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{critical-edition}[2026/04/23 a reledmac code based simple package for critical editions]
+%
+\RequirePackage{etoolbox}
+\RequirePackage{xparse}
+\RequirePackage{keyval}
+%
+\define@key{footAopt}{ad}{\gdef\footA@temp@ad{#1}}
+% Counters.
+\newcount\absline@num
+\newcount\line@num
+\newcount\footA@count
+\newcount\line@count
+\newcount\bnumcount
+\global\bnumcount=0
+
+\newbox\rawtext
+\newbox\one@line
+\newbox\footbox@temp
+
+\newdimen\leftlinenumsep
+\leftlinenumsep=10pt
+\newdimen\rightlinenumsep
+\rightlinenumsep=10pt
+
+\newcommand{\nummarginsep}[2]{%
+	\ifstrempty{#1}{}{\leftlinenumsep=#1\relax}%
+	\ifstrempty{#2}{}{\rightlinenumsep=#2\relax}%
+}
+
+\newcommand{\linenummargin}[1]{%
+	\gdef\EC@linenummargin{#1}%
+}
+\gdef\EC@linenummargin{left}
+
+\newtoggle{lineonleft}
+
+% Checking dynamic ubication of margin numbers.
+\newcommand{\checklinemargin}{%
+	\toggletrue{lineonleft}%
+	\ifcsdef{EC@linepage@\the\bnumcount @\the\line@num}{%
+		\edef\EC@thispage{\csuse{EC@linepage@\the\bnumcount @\the\line@num}}%
+	}{%
+		\edef\EC@thispage{\thepage}%
+	}%
+	\ifdefstring{\EC@linenummargin}{right}{\togglefalse{lineonleft}}{}%
+	\ifdefstring{\EC@linenummargin}{inner}{%
+		\ifodd\EC@thispage\relax%
+		\toggletrue{lineonleft}%
+		\else%
+		\togglefalse{lineonleft}%
+		\fi%
+	}{}%
+	\ifdefstring{\EC@linenummargin}{outer}{%
+		\ifodd\EC@thispage\relax%
+		\togglefalse{lineonleft}%
+		\else%
+		\toggletrue{lineonleft}%
+		\fi%
+	}{}%
+}
+
+% Apparatus typography.
+\newcommand{\footfontsize}{\normalfont\footnotesize}
+
+% Foots body indentation.
+\newdimen\footTparindent % Testimonium or witnesses indentation.
+\newdimen\footAparindent % Variants apparatus.
+\newdimen\footEparindent % Explicatio or explanation.
+
+\newdimen\footAhangindent  \footAhangindent=0pt
+\newdimen\footThangindent  \footThangindent=0pt
+\newdimen\footEhangindent  \footEhangindent=0pt
+
+%
+\newcommand{\comparedisplay}[4]{% #1=macro, #2=string, #3=true, #4=false
+	\ifdefstring{#1}{#2}{#3}{#4}%
+}
+\newcommand{\checkdefempty}[3]{% #1=control, #2=empty, #3=no empty
+	\ifdefempty{#1}{#2}{#3}%
+}
+
+% Actives the indentation in footT and footE.
+\newcommand{\footindent}[2][T]{%
+	\ifstrequal{#2}{par}%
+	{\global\csgdef{foot#1@useparindent}{true}}%
+	{\global\csgdef{foot#1@useparindent}{false}}%
+}
+
+% Footrule size.
+\newcommand{\footArule}{%
+	\textnormal{%
+		\kern4pt
+		\hrule width 2in
+		\kern 2.6pt
+		\vskip 2pt
+	}%
+}
+\newcommand{\footTrule}{\footArule}
+\newcommand{\footErule}{\footArule}
+
+% Counters for footT and footE, independtly of footA.
+\newcounter{footT}
+\newcounter{footE}
+
+\newdimen\EC@savedparindent
+\EC@savedparindent=0pt
+
+%
+\newinsert\footTins
+\newinsert\footAins
+\newinsert\footEins
+
+%
+\newif\ifprev@notes@printed
+\newbool{numberedpar}
+%
+\newcommand{\footfudgefiddle}{64}
+\newcommand{\EC@fudgefactor}{0.04} 
+
+\newcommand*{\EC@setfudge}[2]{% #1 =save factor, #2 = coll width
+	\begingroup
+	\dimen0=\baselineskip
+	\multiply\dimen0 by 1024\relax
+	\divide\dimen0 by #2\relax
+	\multiply\dimen0 by \footfudgefiddle\relax%
+	\xdef#1{\strip@pt\dimen0}%
+	\endgroup
+}
+
+% Quad format compiling.
+\newcommand*{\EC@makehboxofhboxes}{%
+	\global\setbox\footbox@temp=\hbox{}%
+	\loop
+	\unpenalty\unskip\unkern
+	\setbox2=\lastbox
+	\ifhbox2
+	\global\setbox\footbox@temp=\hbox{\box2 \unhbox\footbox@temp}%
+	\repeat
+}
+
+\newcommand*{\EC@removehboxes}{%
+	\setbox0=\lastbox
+	\ifhbox0{\EC@removehboxes}\unhbox0 \fi
+}
+
+%
+\newcommand*{\EC@printblocknotes}[1]{% #1 =for T, A or E series.
+	\global\setbox\footbox@temp=\vbox{}%
+	\loop
+	\unpenalty\unskip\unkern
+	\setbox2=\lastbox
+	\ifvbox2
+	\global\setbox\footbox@temp=\vbox{%
+		\box2
+		\ifstrequal{#1}{E}{\vskip 2pt}{}% Inyect exactamently 2pt of elastic separation under each footE
+		\unvbox\footbox@temp
+	}%
+	\repeat
+}
+
+% Processing blocks function of footnotes (block vs quad).
+\newcommand{\EC@printnotes}[4]{
+	\ifvoid#1\else
+	\setbox\@outputbox\vbox{%
+		\unvbox\@outputbox
+		\ifprev@notes@printed 
+		\vskip 6pt plus 2pt minus 2pt % Vertical space for each foot entrys.
+		\else 
+		\vskip\skip#1%
+		\fi
+		#3% Print footrule.
+		\comparedisplay{#2}{quad}{%Quad mode.
+			\begingroup
+			\setbox4=\vbox{%
+				\unvbox#1%
+				\EC@makehboxofhboxes
+			}%
+			\endgroup
+			\setbox0=\hbox{\unhbox\footbox@temp \EC@removehboxes}%
+			\vbox{%
+				\hsize=\textwidth
+				\footfontsize
+				%
+				\leftskip=0pt\relax
+				\rightskip=0pt\relax
+				\parfillskip=0pt plus 1fil\relax
+				%
+				\parindent=\csuse{foot#4parindent}%
+				\hangindent=\csuse{foot#4hangindent}%
+				\hangafter=1
+				\selectfont
+				\unhbox0\par
+			}%
+		}{%
+			% Block mode.
+			\begingroup
+			\footfontsize
+			\ifstrequal{#4}{E}{%
+				% A dynamic treatment for footE.
+				\setbox4=\vbox{%
+					\unvbox#1%
+					\EC@printblocknotes{#4}%
+				}%
+				\vbox{%
+					\hsize=\textwidth
+					\leftskip=0pt\relax
+					\rightskip=0pt\relax
+					\parfillskip=0pt plus 1fil\relax
+					%
+					\parindent=\csuse{foot#4parindent}%
+					\hangindent=\csuse{foot#4hangindent}%
+					\hangafter=1
+					\unvbox\footbox@temp
+				}%
+			}{%
+				% Standard for the rest foots.
+				\vbox{%
+					\hsize=\textwidth
+					%
+					\leftskip=0pt\relax
+					\rightskip=0pt\relax
+					\parfillskip=0pt plus 1fil\relax
+					%
+					\parindent=\csuse{foot#4parindent}%
+					\hangindent=\csuse{foot#4hangindent}%
+					\hangafter=1
+					\selectfont
+					\unvbox#1%
+				}%
+			}%
+			\endgroup
+		}%
+	}%
+	\global\prev@notes@printedtrue
+	\fi
+}
+
+% Output routine.
+\newcommand*{\simplecritical@doextrafeet}{%
+	\global\prev@notes@printedfalse
+	\global\let\last@printed@line\@empty % Resets duplicated lines detector in each pages.
+	
+	% 1- Testimonia/witnesses (footT).
+	\EC@printnotes{\footTins}{\EC@display@T}{\footTrule}{T}%
+	
+	% 2- Apparatus criticus (footA).
+	\EC@printnotes{\footAins}{\EC@display@A}{\footArule}{A}%
+	
+	% 3- Explicatio/explanation, conventional footnote use (footE).
+	\EC@printnotes{\footEins}{\EC@display@E}{\footErule}{E}%
+}
+
+% Output routine integration.
+\AtBeginDocument{%
+	\EC@savedparindent=\parindent % Captures previous indentation defined for user.
+	
+	% A dynamic evaluation of each foot entry indentation.
+	\ifcsstring{footT@useparindent}{false}%
+	{\footTparindent=0pt}%
+	{\footTparindent=\EC@savedparindent}%
+	
+	\ifcsstring{footA@useparindent}{false}%
+	{\footAparindent=0pt}%
+	{\footAparindent=\EC@savedparindent}%
+	
+	\ifcsstring{footE@useparindent}{false}%
+	{\footEparindent=0pt}%
+	{\footEparindent=\EC@savedparindent}%
+	
+	\EC@setfudge{\EC@fudgefactor}{\textwidth} %
+	
+	\count\footAins=1000
+	\dimen\footAins=0.7\textheight
+	\skip\footAins=10pt plus 4pt minus 2pt
+	
+	\count\footTins=1000
+	\dimen\footTins=0.7\textheight
+	\skip\footTins=10pt plus 4pt minus 2pt
+	
+	\count\footEins=1000
+	\dimen\footEins=0.7\textheight
+	\skip\footEins=10pt plus 4pt minus 2pt
+	
+	% Output Routine of LaTeX2e.
+	\patchcmd{\@makecol}%
+	{\ifvbox\@kludgeins}%
+	{\simplecritical@doextrafeet\ifvbox\@kludgeins}%
+	{\typeout{simplecritical: Rutina de salida de pagina enlazada con exito.}}%
+	{\PackageError{simplecritical}{No se pudo enlazar la rutina de salida}{}}%
+}
+
+% Write protection in titles, indexes and heads.
+\pretocmd{\addcontentsline}{\begingroup\let\footT\@gobble\let\footE\@gobble\let\footA\@gobbletwo}{}{}
+\apptocmd{\addcontentsline}{\endgroup}{}{}
+\pretocmd{\markboth}{\begingroup\let\footT\@gobble\let\footE\@gobble\let\footA\@gobbletwo}{}{}
+\apptocmd{\markboth}{\endgroup}{}{}
+\pretocmd{\markright}{\begingroup\let\footT\@gobble\let\footE\@gobble\let\footA\@gobbletwo}{}{}
+\apptocmd{\markright}{\endgroup}{}{}
+
+% Auxiliar file (.ft).
+\newwrite\ftn@out
+
+% Numbered enviroment required for numbered paragraphs.
+\newcommand{\bnum}{% Open the enviroment.
+	\global\absline@num=0
+	\global\line@num=0
+	\global\footA@count=0
+	\setcounter{footT}{0}%
+	\setcounter{footE}{0}%
+	\global\setbox\footTins=\box\voidb@x
+	\global\setbox\footAins=\box\voidb@x
+	\global\setbox\footEins=\box\voidb@x
+	\boolfalse{numberedpar}%
+	\global\advance\bnumcount by 1\relax%
+	\IfFileExists{\jobname-\the\bnumcount.ft}{%
+		\input{\jobname-\the\bnumcount.ft}%
+	}{}%
+	% Reseting counters for current compilation.
+	\global\absline@num=0
+	\global\line@num=0
+	\global\footA@count=0
+	\setcounter{footT}{0}%
+	\setcounter{footE}{0}%
+	\immediate\openout\ftn@out=\jobname-\the\bnumcount.ft\relax
+}
+
+\newcommand{\enum}{% Close the enviroment.
+	\clearpage 
+	\immediate\closeout\ftn@out
+}
+
+\newcommand{\scNL}{%
+	\global\advance\absline@num by 1
+	\global\advance\line@num by 1
+}
+
+\newcommand{\scLinePage}[3]{%
+	\csgdef{EC@linepage@#1@#2}{#3}%
+}
+
+%
+\newcommand{\scFootAAssoc}[2]{%
+	\csxdef{footA@line@\the\bnumcount @#1}{\the\line@num}%
+	\csgappto{line@footA@trigger@\the\bnumcount @\the\line@num}{%
+		\begingroup
+		\edef\thisbnum{\the\bnumcount}%
+		\setbox0=\hbox{\footfontsize\print@footA@entry{\thisbnum}{#1}}%
+		\dp0=0pt\relax
+		\ht0=\EC@fudgefactor\wd0\relax
+		\insert\footAins{%
+			\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt%
+			\box0
+			\penalty -50 %
+		}%
+		\endgroup
+	}%
+}
+
+\newcommand{\scFootTAssoc}[2]{%
+	\csxdef{footT@line@\the\bnumcount @#1}{\the\line@num}%
+	\csgappto{line@footT@trigger@\the\bnumcount @\the\line@num}{%
+		\comparedisplay{\EC@display@T}{quad}%
+		{%
+			\begingroup
+			\edef\thisbnum{\the\bnumcount}%
+			\setbox0=\hbox{\footfontsize\EC@noteTitem{\print@footT@marker{\thisbnum}{#1}}{\csuse{footT@text@\thisbnum @#1}}}%
+			\dp0=0pt\relax
+			\ht0=\EC@fudgefactor\wd0\relax
+			\insert\footTins{\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\box0\penalty -50}%
+			\endgroup
+		}%
+		{%
+			\begingroup
+			\edef\thisbnum{\the\bnumcount}%
+			\insert\footTins{\vbox{\hsize=\textwidth\footfontsize\parindent=\footTparindent\hangindent=\footThangindent\EC@noteTitem{\print@footT@marker{\thisbnum}{#1}}{\csuse{footT@text@\thisbnum @#1}}}}%
+			\endgroup
+		}%
+	}%
+}
+
+\newcommand{\scFootEAssoc}[2]{%
+	\csxdef{footE@line@\the\bnumcount @#1}{\the\line@num}%
+	\csgappto{line@footE@trigger@\the\bnumcount @\the\line@num}{%
+		\comparedisplay{\EC@display@E}{quad}%
+		{%
+			\begingroup
+			\edef\thisbnum{\the\bnumcount}%
+			\setbox0=\hbox{\footfontsize\EC@noteEitem{\print@footE@marker{\thisbnum}{#1}}{\csuse{footE@text@\thisbnum @#1}}}%
+			\dp0=0pt\relax
+			\ht0=\EC@fudgefactor\wd0\relax
+			\insert\footEins{\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\box0\penalty -50}%
+			\endgroup
+		}%
+		{%
+			\begingroup
+			\edef\thisbnum{\the\bnumcount}%
+			\insert\footEins{%
+				\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt%
+				\vbox{\hsize=\textwidth\footfontsize\parindent=\footEparindent\hangindent=\footEhangindent\EC@noteEitem{\print@footE@marker{\thisbnum}{#1}}{\csuse{footE@text@\thisbnum @#1}}}}%
+			\endgroup
+		}%
+	}%
+}
+
+% Numbered paragraph.
+\newcommand{\nstart}{% Open the numbered paragraph enviroment
+	\par
+	\global\booltrue{numberedpar}%
+	\setbox\rawtext=\vbox\bgroup
+	\hsize=\textwidth
+	\parindent=\EC@savedparindent
+	\normalbaselines
+}
+
+
+
+\newcommand{\nend}{% Close the numbered paragraph enviroment.
+	\par
+	\egroup 
+	\global\boolfalse{numberedpar}%
+	\begingroup
+	\splittopskip=\z@
+	\vbadness=10000
+	\loop\ifvbox\rawtext
+	\setbox\one@line=\vsplit\rawtext to \baselineskip
+	\setbox\footbox@temp=\vbox{\unvbox\one@line \global\setbox\one@line=\lastbox}%
+	\global\advance\absline@num by 1\relax
+	\global\advance\line@num by 1\relax
+	\print@line
+	\repeat
+	\endgroup
+}
+
+\newcommand{\print@line}{%
+	\checklinemargin%
+	\hbox to \textwidth{%
+		\edef\next{\write\ftn@out{\string\scLinePage{\the\bnumcount}{\the\line@num}{\noexpand\number\c@page}}}%
+		\next
+		\write\ftn@out{\string\scNL}%
+		%
+		\iftoggle{lineonleft}{\make@margin@number}{}%
+		\ifcsdef{line@footT@trigger@\the\bnumcount @\the\line@num}{\csuse{line@footT@trigger@\the\bnumcount @\the\line@num}}{}%
+		\ifcsdef{line@footA@trigger@\the\bnumcount @\the\line@num}{\csuse{line@footA@trigger@\the\bnumcount @\the\line@num}}{}%
+		\ifcsdef{line@footE@trigger@\the\bnumcount @\the\line@num}{\csuse{line@footE@trigger@\the\bnumcount @\the\line@num}}{}%
+		\kern\dimexpr\textwidth-\wd\one@line\relax
+		\unhbox\one@line%
+		\nottoggle{lineonleft}{\make@margin@number}{}%
+	}%
+}
+
+\newcommand{\numlabfont}{\normalfont\scriptsize}
+
+\newcommand{\make@margin@number}{% Print margin numbers of counter.
+	\@tempcnta=\line@num
+	\divide\@tempcnta by 5\relax
+	\multiply\@tempcnta by 5\relax
+	\ifnum\@tempcnta=\line@num\relax
+	\ifnum\line@num>0\relax
+	\iftoggle{lineonleft}{%
+		\llap{%
+			\numlabfont\the\line@num
+			\kern\leftlinenumsep
+		}%
+	}{%
+		\rlap{%
+			\kern\rightlinenumsep
+			\numlabfont\the\line@num
+		}%
+	}%
+	\fi
+	\fi
+}
+
+% The lemma and footA.
+\newcommand{\lemma}[1]{%
+	\gdef\footA@temp@altlemma{#1}%
+}
+
+\NewDocumentCommand{\footA}{o m m}{%
+	\global\advance\footA@count by 1\relax
+	\begingroup
+	\global\let\footA@temp@altlemma\relax
+	\global\let\footA@temp@ad\relax
+	\def\lemma##1{\gdef\footA@temp@altlemma{##1}}%
+	\IfValueTF{#1}{%
+		\setkeys{footAopt}{#1}%
+	}{}%
+	% If lemma exist.
+	\setbox0=\hbox{#2}%
+	\endgroup
+	%
+	\begingroup
+	\def\lemma##1{\unskip}%
+	#2%
+	\endgroup
+	%
+	% Saving variants.
+	\csgdef{footA@var@\the\bnumcount @\the\footA@count}{#3}%
+	%
+	\ifx\footA@temp@altlemma\relax
+	% If doesn't use the macro \lemma{}, the default lemma is #1
+	\csgdef{footA@lem@\the\bnumcount @\the\footA@count}{#2}%
+	\else
+	%
+	\csxdef{footA@lem@\the\bnumcount @\the\footA@count}{\unexpanded\expandafter{\footA@temp@altlemma}}%
+	\fi
+	%
+	\ifx\footA@temp@ad\relax
+	\else
+	\csxdef{footA@endline@\the\bnumcount @\the\footA@count}{\unexpanded\expandafter{\footA@temp@ad}}%
+	\fi
+	%
+	\edef\act{%
+		\noexpand\write\noexpand\ftn@out{\string\scFootAAssoc{\the\footA@count}{0pt}}%
+	}%
+	\act
+}
+
+\newcommand{\print@footA@entry}[2]{%
+	\begingroup
+	\footfontsize
+	\ifcsdef{footA@line@#1@#2}{%
+		\def\line@ref{\csuse{footA@line@#1@#2}}%
+	}{%
+		\def\line@ref{??}%
+	}%
+	\ifcsdef{footA@endline@#1@#2}{%
+		\edef\line@ref@end{\csuse{footA@endline@#1@#2}}%
+	}{%
+		\let\line@ref@end\empty
+	}%
+	%
+	\def\lemma##1{\unskip}% 
+	\def\the@lemma{\csuse{footA@lem@#1@#2}}%
+	\def\the@variant{\csuse{footA@var@#1@#2}}%
+	\ifx\line@ref@end\empty
+	\ifcsvoid{last@printed@line}{%
+		\def\print@ref{\textbf{\line@ref}}%
+	}{%
+		\ifcsequal{last@printed@line}{footA@line@#1@#2}{%
+			\def\print@ref{\textbf{\char"02016}\enskip}%
+		}{%
+			\def\print@ref{\textbf{\line@ref}}%
+		}%
+	}%
+	\global\csletcs{last@printed@line}{footA@line@#1@#2}%
+	\else
+	\def\print@ref{\textbf{\line@ref--\line@ref@end}}%
+	\global\let\last@printed@line\empty
+	\fi
+	\print@ref\space
+	\ifcsvoid{footA@lem@#1@#2}{%
+		\the@variant
+	}{%
+		\the@lemma] \the@variant
+	}%
+	\quad\relax
+	\endgroup
+}
+
+\gdef\EC@display@A{quad} % Apparatus criticus always is quad.
+
+% Normal footnotes: footT and footE.%
+% The macro \foottype[T/E]{quad/block} activate quad.
+\newcommand{\foottype}[2][T]{%
+	\ifboolexpr{ test {\ifstrequal{#2}{quad}} }{%
+		\ifstrequal{#1}{T}{%
+			\gdef\EC@display@T{#2}%
+			\global\let\EC@noteTitem\EC@noteT@quad%
+		}{}%
+		\ifstrequal{#1}{E}{%
+			\gdef\EC@display@E{#2}%
+			\global\let\EC@noteEitem\EC@noteE@quad%
+		}{}%
+	}{%
+		\ifstrequal{#1}{T}{%
+			\gdef\EC@display@T{block}%
+			\global\let\EC@noteTitem\EC@noteT@block%
+		}{}%
+		\ifstrequal{#1}{E}{%
+			\gdef\EC@display@E{block}%
+			\global\let\EC@noteEitem\EC@noteE@block%
+		}{}%
+	}%
+}
+
+% Foot format.
+\newcommand{\EC@noteT@block}[2]{#1#2\par}
+\newcommand{\EC@noteE@block}[2]{#1#2\par}
+\newcommand{\EC@noteT@quad}[2]{#1#2\quad}
+\newcommand{\EC@noteE@quad}[2]{#1#2\quad}
+
+% Number print or not.
+\newcommand{\thefootA}[1]{\textbf{#1}}
+\renewcommand{\thefootT}{\arabic{footT}} 
+\renewcommand{\thefootE}{\arabic{footE}} 
+
+% Superscript body number appareance.
+\newcommand{\footTcall}[1]{\textsuperscript{#1}}
+\newcommand{\footEcall}[1]{\textsuperscript{#1}}
+
+% Superscript foot number appareance.
+\newcommand{\footTmark}[1]{\textbf{\textsuperscript{#1}}}
+\newcommand{\footEmark}[1]{\textbf{\textsuperscript{#1}}}
+
+%
+\newcommand{\print@footT@marker}[2]{%
+	\begingroup
+	\setcounter{footT}{#2}%
+	\checkdefempty{\thefootT}%
+	{}%
+	{{\footTmark{\thefootT}}\space}%
+	\endgroup
+}
+\newcommand{\print@footE@marker}[2]{%
+	\begingroup
+	\setcounter{footE}{#2}%
+	\checkdefempty{\thefootE}%
+	{}%
+	{{\footEmark{\thefootE}}\space}%
+	\endgroup
+}
+
+\gdef\EC@display@T{block}     
+\gdef\EC@display@E{block}     
+\let\EC@noteTitem\EC@noteT@block
+\let\EC@noteEitem\EC@noteE@block
+
+% The footT (witnesses).
+\NewDocumentCommand{\footT}{o m}{%
+	\IfValueTF{#1}{%
+		\setcounter{footT}{#1}%
+	}{%
+		\stepcounter{footT}%
+	}%
+	\checkdefempty{\thefootT}%
+	{}%
+	{{\footTcall{\thefootT}}}
+	\begingroup
+	\ifbool{numberedpar}{%
+		\csgdef{footT@text@\the\bnumcount @\the\value{footT}}{#2}%
+		\edef\act{%
+			\noexpand\write\noexpand\ftn@out{\string\scFootTAssoc{\the\value{footT}}{0pt}}%
+		}%
+		\act
+	}{%
+		\comparedisplay{\EC@display@T}{quad}%
+		{%
+			\begingroup
+			\setbox0=\hbox{\footfontsize\EC@noteTitem{\print@footT@marker{\the\bnumcount}{\the\value{footT}}}{\unexpanded{#2}}}%
+			\dp0=0pt\relax
+			\ht0=\EC@fudgefactor\wd0\relax
+			\insert\footTins{\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\box0\penalty -50}%
+			\endgroup
+		}%
+		{%
+			\insert\footTins{\vbox{\hsize=\textwidth\footfontsize\parindent=\footTparindent\hangindent=\footThangindent\EC@noteTitem{\print@footT@marker{\the\bnumcount}{\the\value{footT}}}{\unexpanded{#2}}}}%
+		}%
+	}%
+	\endgroup
+}
+
+%The footE (explanations).
+\NewDocumentCommand{\footE}{o +m}{%
+	\IfValueTF{#1}{%
+		\setcounter{footE}{#1}%
+	}{%
+		\stepcounter{footE}%
+	}%
+	\checkdefempty{\thefootE}%
+	{}%
+	{{\footEcall{\thefootE}}}%
+	\begingroup
+	\ifbool{numberedpar}{%
+		\csgdef{footE@text@\the\bnumcount @\the\value{footE}}{#2}%
+		\edef\act{%
+			\noexpand\write\noexpand\ftn@out{\string\scFootEAssoc{\the\value{footE}}{0pt}}%
+		}%
+		\act
+	}{%
+		\comparedisplay{\EC@display@E}{quad}%
+		{%
+			\begingroup
+			\setbox0=\hbox{\footfontsize\EC@noteEitem{\print@footE@marker{\the\bnumcount}{\the\value{footE}}}{\unexpanded{#2}}}%
+			\dp0=0pt\relax
+			\ht0=\EC@fudgefactor\wd0\relax
+			\insert\footEins{\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\box0\penalty -50}%
+			\endgroup
+		}%
+		{%
+			\insert\footEins{\vbox{\hsize=\textwidth\footfontsize\parindent=\footEparindent\hangindent=\footEhangindent\EC@noteEitem{\print@footE@marker{\the\bnumcount}{\the\value{footE}}}{\unexpanded{#2}}}}%
+		}%
+	}%
+	\endgroup
+}
+%
+\endinput
