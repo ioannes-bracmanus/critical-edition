@@ -300,9 +300,73 @@
 \pretocmd{\markright}{\begingroup\let\footT\@gobble\let\footE\@gobble\let\footA\@gobbletwo}{}{}
 \apptocmd{\markright}{\endgroup}{}{}
 
+%
+\newcommand{\scFootAAssoc}[2]{%
+	\csxdef{footA@line@\the\bnumcount @#1}{\the\line@num}%
+	\csgappto{line@footA@trigger@\the\bnumcount @\the\line@num}{%
+		\begingroup
+		\edef\thisbnum{\the\bnumcount}%
+		\setbox0=\hbox{\footfontsize\print@footA@entry{\thisbnum}{#1}}%
+		\dp0=0pt\relax
+		\ht0=\EC@fudgefactor\wd0\relax
+		\insert\footAins{%
+			\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt%
+			\box0
+			\penalty -50 %
+		}%
+		\endgroup
+	}%
+}
+
+\newcommand{\scFootTAssoc}[2]{%
+	\csxdef{footT@line@\the\bnumcount @#1}{\the\line@num}%
+	\csgappto{line@footT@trigger@\the\bnumcount @\the\line@num}{%
+		\comparedisplay{\EC@display@T}{quad}%
+		{%
+			\begingroup
+			\edef\thisbnum{\the\bnumcount}%
+			\setbox0=\hbox{\footfontsize\EC@noteTitem{\print@footT@marker{\thisbnum}{#1}}{\csuse{footT@text@\thisbnum @#1}}}%
+			\dp0=0pt\relax
+			\ht0=\EC@fudgefactor\wd0\relax
+			\insert\footTins{\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\box0\penalty -50}%
+			\endgroup
+		}%
+		{%
+			\begingroup
+			\edef\thisbnum{\the\bnumcount}%
+			\insert\footTins{\vbox{\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footTparindent\hangindent=\footThangindent\EC@noteTitem{\print@footT@marker{\thisbnum}{#1}}{\csuse{footT@text@\thisbnum @#1}}}}%
+			\endgroup
+		}%
+	}%
+}
+
+\newcommand{\scFootEAssoc}[2]{%
+	\csxdef{footE@line@\the\bnumcount @#1}{\the\line@num}%
+	\csgappto{line@footE@trigger@\the\bnumcount @\the\line@num}{%
+		\comparedisplay{\EC@display@E}{quad}%
+		{%
+			\begingroup
+			\edef\thisbnum{\the\bnumcount}%
+			\setbox0=\hbox{\footfontsize\EC@noteEitem{\print@footE@marker{\thisbnum}{#1}}{\csuse{footE@text@\thisbnum @#1}}}%
+			\dp0=0pt\relax
+			\ht0=\EC@fudgefactor\wd0\relax
+			\insert\footEins{\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\box0\penalty -50}%
+			\endgroup
+		}%
+		{%
+			\begingroup
+			\edef\thisbnum{\the\bnumcount}%
+			\insert\footEins{%
+				\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt%
+				\vbox{\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footEparindent\hangindent=\footEhangindent\EC@noteEitem{\print@footE@marker{\thisbnum}{#1}}{\csuse{footE@text@\thisbnum @#1}}}}%
+			\endgroup
+		}%
+	}%
+}
+
+%% Numbered paragraph.
 % Auxiliar file (.ft).
 \newwrite\ftn@out
-
 % Numbered enviroment required for numbered paragraphs.
 \newcommand{\bnum}{% Open the enviroment.
 	\global\absline@num=0
@@ -341,95 +405,76 @@
 	\csgdef{EC@linepage@#1@#2}{#3}%
 }
 
-%
-\newcommand{\scFootAAssoc}[2]{%
-	\csxdef{footA@line@\the\bnumcount @#1}{\the\line@num}%
-	\csgappto{line@footA@trigger@\the\bnumcount @\the\line@num}{%
-		\begingroup
-		\edef\thisbnum{\the\bnumcount}%
-		\setbox0=\hbox{\footfontsize\print@footA@entry{\thisbnum}{#1}}%
-		\dp0=0pt\relax
-		\ht0=\EC@fudgefactor\wd0\relax
-		\insert\footAins{%
-			\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt%
-			\box0
-			\penalty -50 %
-		}%
-		\endgroup
-	}%
+\newcount\EC@chunkcount
+\newbox\EC@dummybox
+\newbox\EC@stackpatchA
+\newbox\EC@stackpatchAA
+
+\newcommand{\EC@stackset}[1]{% #1 = índice (1..6)
+	\ifcase#1\or
+	\global\setbox\EC@stackpatchA=\box\one@line\or
+	\global\setbox\EC@stackpatchAA=\box\one@line\fi
+}
+\newcommand{\EC@stackget}[1]{% #1 = índice (1..8)
+	\ifcase#1\or
+	\global\setbox\one@line=\box\EC@stackpatchA\or
+	\global\setbox\one@line=\box\EC@stackpatchAA\fi
+}
+\newcommand{\EC@drainchunk}{%
+	\unskip\unpenalty\unkern
+	\global\setbox\one@line=\lastbox
+	\ifvoid\one@line
+	\else
+	\global\advance\EC@chunkcount by 1\relax
+	\EC@stackset{\the\EC@chunkcount}%
+	\EC@drainchunk
+	\fi
+}
+\newcommand{\EC@printchunk}{%
+	\ifnum\EC@chunkcount>0\relax
+	\EC@stackget{\the\EC@chunkcount}%
+	\global\advance\absline@num by 1\relax
+	\global\advance\line@num by 1\relax
+	\print@line
+	\global\advance\EC@chunkcount by -1\relax
+	\EC@printchunk
+	\fi
 }
 
-\newcommand{\scFootTAssoc}[2]{%
-	\csxdef{footT@line@\the\bnumcount @#1}{\the\line@num}%
-	\csgappto{line@footT@trigger@\the\bnumcount @\the\line@num}{%
-		\comparedisplay{\EC@display@T}{quad}%
-		{%
-			\begingroup
-			\edef\thisbnum{\the\bnumcount}%
-			\setbox0=\hbox{\footfontsize\EC@noteTitem{\print@footT@marker{\thisbnum}{#1}}{\csuse{footT@text@\thisbnum @#1}}}%
-			\dp0=0pt\relax
-			\ht0=\EC@fudgefactor\wd0\relax
-			\insert\footTins{\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\box0\penalty -50}%
-			\endgroup
-		}%
-		{%
-			\begingroup
-			\edef\thisbnum{\the\bnumcount}%
-			\insert\footTins{\vbox{\hsize=\textwidth\footfontsize\parindent=\footTparindent\hangindent=\footThangindent\EC@noteTitem{\print@footT@marker{\thisbnum}{#1}}{\csuse{footT@text@\thisbnum @#1}}}}%
-			\endgroup
-		}%
-	}%
-}
-
-\newcommand{\scFootEAssoc}[2]{%
-	\csxdef{footE@line@\the\bnumcount @#1}{\the\line@num}%
-	\csgappto{line@footE@trigger@\the\bnumcount @\the\line@num}{%
-		\comparedisplay{\EC@display@E}{quad}%
-		{%
-			\begingroup
-			\edef\thisbnum{\the\bnumcount}%
-			\setbox0=\hbox{\footfontsize\EC@noteEitem{\print@footE@marker{\thisbnum}{#1}}{\csuse{footE@text@\thisbnum @#1}}}%
-			\dp0=0pt\relax
-			\ht0=\EC@fudgefactor\wd0\relax
-			\insert\footEins{\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\box0\penalty -50}%
-			\endgroup
-		}%
-		{%
-			\begingroup
-			\edef\thisbnum{\the\bnumcount}%
-			\insert\footEins{%
-				\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt%
-				\vbox{\hsize=\textwidth\footfontsize\parindent=\footEparindent\hangindent=\footEhangindent\EC@noteEitem{\print@footE@marker{\thisbnum}{#1}}{\csuse{footE@text@\thisbnum @#1}}}}%
-			\endgroup
-		}%
-	}%
-}
-
-% Numbered paragraph.
 \newcommand{\nstart}{% Open the numbered paragraph enviroment
 	\par
 	\global\booltrue{numberedpar}%
-	\setbox\rawtext=\vbox\bgroup
+	\global\setbox\rawtext=\vbox\bgroup
 	\hsize=\textwidth
 	\parindent=\EC@savedparindent
+	\parskip=\z@\relax
+	\lineskiplimit=-100pt
 	\normalbaselines
+	\topskip=\z@
+	\brokenpenalty=\z@
+	\clubpenalty=\z@
+	\displaywidowpenalty=\z@
+	\interlinepenalty=\z@
+	\predisplaypenalty=\z@
+	\postdisplaypenalty=\z@
+	\widowpenalty=\z@
 }
-
-
 
 \newcommand{\nend}{% Close the numbered paragraph enviroment.
 	\par
 	\egroup 
 	\global\boolfalse{numberedpar}%
 	\begingroup
-	\splittopskip=\z@
 	\vbadness=10000
 	\loop\ifvbox\rawtext
-	\setbox\one@line=\vsplit\rawtext to \baselineskip
-	\setbox\footbox@temp=\vbox{\unvbox\one@line \global\setbox\one@line=\lastbox}%
-	\global\advance\absline@num by 1\relax
-	\global\advance\line@num by 1\relax
-	\print@line
+	{\splittopskip=\z@ 
+		\global\setbox\one@line=\vsplit\rawtext to \baselineskip}%
+	\EC@chunkcount=0\relax
+	\setbox\EC@dummybox=\vbox{%
+		\unvbox\one@line
+		\EC@drainchunk
+	}%
+	\EC@printchunk
 	\repeat
 	\endgroup
 }
@@ -519,8 +564,8 @@
 	\act
 }
 
-\newcommand{\Asamelineseparator}{\char"02016}
-\newcommand{\Alemmaseparator}{]}
+\newcommand{\samelineseparatorA}{\char"02016}
+\newcommand{\lemmaseparatorA}{]}
 
 \newcommand{\print@footA@entry}[2]{%
 	\begingroup
@@ -544,7 +589,7 @@
 		\def\print@ref{\textbf{\line@ref}}%
 	}{%
 		\ifcsequal{last@printed@line}{footA@line@#1@#2}{%
-			\def\print@ref{\textbf{\Asamelineseparator}\enskip}%
+			\def\print@ref{\textbf{\samelineseparatorA}\enskip}%
 		}{%
 			\def\print@ref{\textbf{\line@ref}}%
 		}%
@@ -558,7 +603,7 @@
 	\ifcsvoid{footA@lem@#1@#2}{%
 		\the@variant
 	}{%
-		\the@lemma\Alemmaseparator\enskip \the@variant
+		\the@lemma\lemmaseparatorA\enskip \the@variant
 	}%
 	\quad\relax
 	\endgroup
@@ -660,12 +705,13 @@
 			\endgroup
 		}%
 		{%
-			\insert\footTins{\vbox{\hsize=\textwidth\footfontsize\parindent=\footTparindent\hangindent=\footThangindent\EC@noteTitem{\print@footT@marker{\the\bnumcount}{\the\value{footT}}}{\unexpanded{#2}}}}%
+			\insert\footTins{\vbox{\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footTparindent\hangindent=\footThangindent\EC@noteTitem{\print@footT@marker{\the\bnumcount}{\the\value{footT}}}{\unexpanded{#2}}}}%
 		}%
 	}%
 	\endgroup
 }
 
+%The footE (explanations).
 %The footE (explanations).
 \NewDocumentCommand{\footE}{o +m}{%
 	\IfValueTF{#1}{%
@@ -694,7 +740,7 @@
 			\endgroup
 		}%
 		{%
-			\insert\footEins{\vbox{\hsize=\textwidth\footfontsize\parindent=\footEparindent\hangindent=\footEhangindent\EC@noteEitem{\print@footE@marker{\the\bnumcount}{\the\value{footE}}}{\unexpanded{#2}}}}%
+			\insert\footEins{\vbox{\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footEparindent\hangindent=\footEhangindent\EC@noteEitem{\print@footE@marker{\the\bnumcount}{\the\value{footE}}}{\unexpanded{#2}}}}%
 		}%
 	}%
 	\endgroup
