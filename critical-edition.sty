@@ -1,5 +1,5 @@
-%% critical-edition.sty
-
+%%%% critical-edition.sty → Ioannes Bracmanus (2026), licensed under The LaTeX Project Public License
+%
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesPackage{critical-edition}[2026/04/23 a reledmac code based simple package for critical editions]
 %
@@ -155,7 +155,7 @@
 	\ifvbox2
 	\global\setbox\footbox@temp=\vbox{%
 		\box2
-		\ifstrequal{#1}{E}{\vskip 2pt}{}% Inyect exactamently 2pt of elastic separation under each footE
+		\ifstrequal{#1}{E}{\vskip 2pt}{}% Inyects exactamently 2pt of elastic separation under each footE
 		\unvbox\footbox@temp
 	}%
 	\repeat
@@ -284,7 +284,7 @@
 	\dimen\footEins=0.7\textheight
 	\skip\footEins=10pt plus 4pt minus 2pt
 	
-	% Output Routine of LaTeX2e.
+	% Output.
 	\patchcmd{\@makecol}%
 	{\ifvbox\@kludgeins}%
 	{\simplecritical@doextrafeet\ifvbox\@kludgeins}%
@@ -301,12 +301,12 @@
 \apptocmd{\markright}{\endgroup}{}{}
 
 %
-\newcommand{\scFootAAssoc}[2]{%
-	\csxdef{footA@line@\the\bnumcount @#1}{\the\line@num}%
-	\csgappto{line@footA@trigger@\the\bnumcount @\the\line@num}{%
+\newcommand{\scFootAAssoc}[3]{% #1 = bnumcount, #2 = footA_count, #3 = space
+	\csxdef{footA@line@#1@#2}{\csuse{EC@line@#1}}%
+	\csgappto{line@footA@trigger@#1@\csuse{EC@line@#1}}{%
 		\begingroup
-		\edef\thisbnum{\the\bnumcount}%
-		\setbox0=\hbox{\footfontsize\print@footA@entry{\thisbnum}{#1}}%
+		\edef\thisbnum{#1}%
+		\setbox0=\hbox{\footfontsize\print@footA@entry{\thisbnum}{#2}}%
 		\dp0=0pt\relax
 		\ht0=\EC@fudgefactor\wd0\relax
 		\insert\footAins{%
@@ -318,14 +318,14 @@
 	}%
 }
 
-\newcommand{\scFootTAssoc}[2]{%
-	\csxdef{footT@line@\the\bnumcount @#1}{\the\line@num}%
-	\csgappto{line@footT@trigger@\the\bnumcount @\the\line@num}{%
+\newcommand{\scFootTAssoc}[3]{% #1 = bnumcount, #2 = footT_count, #3 = space
+	\csxdef{footT@line@#1@#2}{\csuse{EC@line@#1}}%
+	\csgappto{line@footT@trigger@#1@\csuse{EC@line@#1}}{%
 		\comparedisplay{\EC@display@T}{quad}%
 		{%
 			\begingroup
-			\edef\thisbnum{\the\bnumcount}%
-			\setbox0=\hbox{\footfontsize\EC@noteTitem{\print@footT@marker{\thisbnum}{#1}}{\csuse{footT@text@\thisbnum @#1}}}%
+			\edef\thisbnum{#1}%
+			\setbox0=\hbox{\footfontsize\EC@noteTitem{\print@footT@marker{\thisbnum}{#2}}{\csuse{footT@text@\thisbnum @#2}}}%
 			\dp0=0pt\relax
 			\ht0=\EC@fudgefactor\wd0\relax
 			\insert\footTins{\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\box0\penalty -50}%
@@ -333,21 +333,21 @@
 		}%
 		{%
 			\begingroup
-			\edef\thisbnum{\the\bnumcount}%
-			\insert\footTins{\vbox{\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footTparindent\hangindent=\footThangindent\EC@noteTitem{\print@footT@marker{\thisbnum}{#1}}{\csuse{footT@text@\thisbnum @#1}}}}%
+			\edef\thisbnum{#1}%
+			\insert\footTins{\vbox{\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footTparindent\hangindent=\footThangindent\EC@noteTitem{\print@footT@marker{\thisbnum}{#2}}{\csuse{footT@text@\thisbnum @#2}}}}%
 			\endgroup
 		}%
 	}%
 }
 
-\newcommand{\scFootEAssoc}[2]{%
-	\csxdef{footE@line@\the\bnumcount @#1}{\the\line@num}%
-	\csgappto{line@footE@trigger@\the\bnumcount @\the\line@num}{%
+\newcommand{\scFootEAssoc}[3]{% #1 = bnumcount, #2 = footE_count, #3 = space
+	\csxdef{footE@line@#1@#2}{\csuse{EC@line@#1}}%
+	\csgappto{line@footE@trigger@#1@\csuse{EC@line@#1}}{%
 		\comparedisplay{\EC@display@E}{quad}%
 		{%
 			\begingroup
-			\edef\thisbnum{\the\bnumcount}%
-			\setbox0=\hbox{\footfontsize\EC@noteEitem{\print@footE@marker{\thisbnum}{#1}}{\csuse{footE@text@\thisbnum @#1}}}%
+			\edef\thisbnum{#1}%
+			\setbox0=\hbox{\footfontsize\EC@noteEitem{\print@footE@marker{\thisbnum}{#2}}{\csuse{footE@text@\thisbnum @#2}}}%
 			\dp0=0pt\relax
 			\ht0=\EC@fudgefactor\wd0\relax
 			\insert\footEins{\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\box0\penalty -50}%
@@ -355,20 +355,15 @@
 		}%
 		{%
 			\begingroup
-			\edef\thisbnum{\the\bnumcount}%
-			\insert\footEins{%
-				\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt%
-				\vbox{\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footEparindent\hangindent=\footEhangindent\EC@noteEitem{\print@footE@marker{\thisbnum}{#1}}{\csuse{footE@text@\thisbnum @#1}}}}%
+			\edef\thisbnum{#1}%
+			\insert\footEins{\vbox{\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footEparindent\hangindent=\footEhangindent\EC@noteEitem{\print@footE@marker{\thisbnum}{#2}}{\csuse{footE@text@\thisbnum @#2}}}}%
 			\endgroup
 		}%
 	}%
 }
 
 %% Numbered paragraph.
-% Auxiliar file (.ft).
-\newwrite\ftn@out
-% Numbered enviroment required for numbered paragraphs.
-\newcommand{\bnum}{% Open the enviroment.
+\newcommand{\bnum}{% Open the environment.
 	\global\absline@num=0
 	\global\line@num=0
 	\global\footA@count=0
@@ -379,26 +374,19 @@
 	\global\setbox\footEins=\box\voidb@x
 	\boolfalse{numberedpar}%
 	\global\advance\bnumcount by 1\relax%
-	\IfFileExists{\jobname-\the\bnumcount.ft}{%
-		\input{\jobname-\the\bnumcount.ft}%
-	}{}%
 	% Reseting counters for current compilation.
 	\global\absline@num=0
 	\global\line@num=0
 	\global\footA@count=0
 	\setcounter{footT}{0}%
 	\setcounter{footE}{0}%
-	\immediate\openout\ftn@out=\jobname-\the\bnumcount.ft\relax
 }
 
-\newcommand{\enum}{% Close the enviroment.
-	\clearpage 
-	\immediate\closeout\ftn@out
+\newcommand{\enum}{% Close the environment.
 }
 
-\newcommand{\scNL}{%
-	\global\advance\absline@num by 1
-	\global\advance\line@num by 1
+\newcommand{\scNL}[2]{% #1 = bnumcount, #2 = line_num
+	\csgdef{EC@line@#1}{#2}%
 }
 
 \newcommand{\scLinePage}[3]{%
@@ -441,14 +429,14 @@
 	\fi
 }
 
-\newcommand{\nstart}{% Open the numbered paragraph enviroment
+\newcommand{\nstart}{% Open the numbered paragraph environment
 	\par
 	\global\booltrue{numberedpar}%
 	\global\setbox\rawtext=\vbox\bgroup
 	\hsize=\textwidth
 	\parindent=\EC@savedparindent
 	\parskip=\z@\relax
-	\lineskiplimit=-100pt
+	\lineskiplimit=-1000pt
 	\normalbaselines
 	\topskip=\z@
 	\brokenpenalty=\z@
@@ -460,7 +448,7 @@
 	\widowpenalty=\z@
 }
 
-\newcommand{\nend}{% Close the numbered paragraph enviroment.
+\newcommand{\nend}{% Close the numbered paragraph environment.
 	\par
 	\egroup 
 	\global\boolfalse{numberedpar}%
@@ -479,41 +467,72 @@
 	\endgroup
 }
 
+% Redefine the line in the counter system.
+\newcommand{\setotherline}[1]{%
+	\global\line@num=#1\relax
+	\global\advance\line@num by -1\relax
+}
+
 \newcommand{\print@line}{%
 	\checklinemargin%
 	\hbox to \textwidth{%
-		\edef\next{\write\ftn@out{\string\scLinePage{\the\bnumcount}{\the\line@num}{\noexpand\number\c@page}}}%
-		\next
-		\write\ftn@out{\string\scNL}%
 		%
-		\iftoggle{lineonleft}{\make@margin@number}{}%
+		\edef\next{\write\@auxout{\string\scLinePage{\the\bnumcount}{\the\line@num}{\noexpand\number\c@page}}}%
+		\next
+		%
+		\edef\next{\write\@auxout{\string\scNL{\the\bnumcount}{\the\line@num}}}%
+		\next
+		%
+		\make@margin@number
+		%
 		\ifcsdef{line@footT@trigger@\the\bnumcount @\the\line@num}{\csuse{line@footT@trigger@\the\bnumcount @\the\line@num}}{}%
 		\ifcsdef{line@footA@trigger@\the\bnumcount @\the\line@num}{\csuse{line@footA@trigger@\the\bnumcount @\the\line@num}}{}%
 		\ifcsdef{line@footE@trigger@\the\bnumcount @\the\line@num}{\csuse{line@footE@trigger@\the\bnumcount @\the\line@num}}{}%
 		\kern\dimexpr\textwidth-\wd\one@line\relax
 		\unhbox\one@line%
-		\nottoggle{lineonleft}{\make@margin@number}{}%
 	}%
 }
 
 \newcommand{\numlabfont}{\normalfont\scriptsize}
 
+\newcommand{\printlinenum}[1]{%
+	\global\csgdef{EC@force@line@\the\bnumcount @#1}{1}%
+}
+
 \newcommand{\make@margin@number}{% Print margin numbers of counter.
+	\def\force@print@this{0}%
+	\ifcsdef{EC@force@line@\the\bnumcount @\the\line@num}{%
+		\def\force@print@this{1}%
+	}{}%
+	%
+	\def\do@print@num{0}%
 	\@tempcnta=\line@num
 	\divide\@tempcnta by 5\relax
 	\multiply\@tempcnta by 5\relax
 	\ifnum\@tempcnta=\line@num\relax
+	\def\do@print@num{1}%
+	\fi
+	% If exist \printlinenum{}.
+	\ifnum\force@print@this=1\relax
+	\def\do@print@num{1}%
+	\fi
+	%
+	\ifnum\do@print@num=1\relax
 	\ifnum\line@num>0\relax
 	\iftoggle{lineonleft}{%
+		% Left side.
 		\llap{%
 			\numlabfont\the\line@num
 			\kern\leftlinenumsep
 		}%
 	}{%
+		% Right side.
+		\kern\textwidth
 		\rlap{%
 			\kern\rightlinenumsep
 			\numlabfont\the\line@num
 		}%
+		\kern-\textwidth
 	}%
 	\fi
 	\fi
@@ -546,7 +565,7 @@
 	\csgdef{footA@var@\the\bnumcount @\the\footA@count}{#3}%
 	%
 	\ifx\footA@temp@altlemma\relax
-	% If doesn't use the macro \lemma{}, the default lemma is #1
+	% If doesn't use the macro \lemma{}, the default lemma is #2
 	\csgdef{footA@lem@\the\bnumcount @\the\footA@count}{#2}%
 	\else
 	%
@@ -559,7 +578,7 @@
 	\fi
 	%
 	\edef\act{%
-		\noexpand\write\noexpand\ftn@out{\string\scFootAAssoc{\the\footA@count}{0pt}}%
+		\noexpand\write\noexpand\@auxout{\string\scFootAAssoc{\the\bnumcount}{\the\footA@count}{0pt}}%
 	}%
 	\act
 }
@@ -646,11 +665,11 @@
 \renewcommand{\thefootT}{\arabic{footT}} 
 \renewcommand{\thefootE}{\arabic{footE}} 
 
-% Superscript body number appareance.
+% Superscript body number appearance.
 \newcommand{\footTcall}[1]{\textsuperscript{#1}}
 \newcommand{\footEcall}[1]{\textsuperscript{#1}}
 
-% Superscript foot number appareance.
+% Superscript foot number appearance.
 \newcommand{\footTmark}[1]{\textbf{\textsuperscript{#1}}}
 \newcommand{\footEmark}[1]{\textbf{\textsuperscript{#1}}}
 
@@ -691,7 +710,7 @@
 	\ifbool{numberedpar}{%
 		\csgdef{footT@text@\the\bnumcount @\the\value{footT}}{#2}%
 		\edef\act{%
-			\noexpand\write\noexpand\ftn@out{\string\scFootTAssoc{\the\value{footT}}{0pt}}%
+			\noexpand\write\noexpand\@auxout{\string\scFootTAssoc{\the\bnumcount}{\the\value{footT}}{0pt}}%
 		}%
 		\act
 	}{%
@@ -712,7 +731,6 @@
 }
 
 %The footE (explanations).
-%The footE (explanations).
 \NewDocumentCommand{\footE}{o +m}{%
 	\IfValueTF{#1}{%
 		\setcounter{footE}{#1}%
@@ -726,7 +744,7 @@
 	\ifbool{numberedpar}{%
 		\csgdef{footE@text@\the\bnumcount @\the\value{footE}}{#2}%
 		\edef\act{%
-			\noexpand\write\noexpand\ftn@out{\string\scFootEAssoc{\the\value{footE}}{0pt}}%
+			\noexpand\write\noexpand\@auxout{\string\scFootEAssoc{\the\bnumcount}{\the\value{footE}}{0pt}}%
 		}%
 		\act
 	}{%
