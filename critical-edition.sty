@@ -35,6 +35,26 @@
 }
 \gdef\EC@linenummargin{left}
 
+% Specific config for critgroup.
+\newdimen\groupleftlinenumsep
+\groupleftlinenumsep=10pt
+\newdimen\grouprightlinenumsep
+\grouprightlinenumsep=10pt
+\newbool{group@nummarginsep@set}
+\boolfalse{group@nummarginsep@set}
+
+\newcommand{\groupnummarginsep}[2]{%
+	\ifstrempty{#1}{}{\groupleftlinenumsep=#1\relax}%
+	\ifstrempty{#2}{}{\grouprightlinenumsep=#2\relax}%
+	\booltrue{group@nummarginsep@set}%
+}
+
+\newcommand{\grouplinenummargin}[1]{%
+	\gdef\EC@grouplinenummargin{#1}%
+}
+\gdef\EC@grouplinenummargin{}
+%
+
 \newtoggle{lineonleft}
 
 % Checking dynamic ubication of margin numbers.
@@ -55,15 +75,20 @@
 	}{}%
 	\ifdefstring{\EC@linenummargin}{outer}{%
 		\ifodd\EC@thispage\relax%
-		\togglefalse{lineonleft}%
-		\else%
 		\toggletrue{lineonleft}%
+		\else%
+		\togglefalse{lineonleft}%
 		\fi%
 	}{}%
 }
 
-% Apparatus typography.
+% Apparatus typography & glue.
 \newcommand{\footfontsize}{\normalfont\footnotesize}
+\newskip\beforeapparatusglue
+\global\beforeapparatusglue=10pt plus 4pt minus 2pt
+
+\newskip\betweenapparatusglue
+\global\betweenapparatusglue=6pt plus 2pt minus 2pt
 
 % Foots body indentation.
 \newdimen\footTparindent % Testimonium or witnesses indentation.
@@ -91,12 +116,10 @@
 
 % Footrule size.
 \newcommand{\footArule}{%
-	\textnormal{%
 		\kern4pt
 		\hrule width 2in
 		\kern 2.6pt
-		\vskip 2pt
-	}%
+	%	\vskip 2pt
 }
 \newcommand{\footTrule}{\footArule}
 \newcommand{\footErule}{\footArule}
@@ -112,6 +135,15 @@
 \newinsert\footTins
 \newinsert\footAins
 \newinsert\footEins
+
+% Local boxes for critgroup.
+\newbox\local@footTbox
+\newbox\local@footAbox
+\newbox\local@footEbox
+
+% Booleano de control para redirección de inserts dentro de critgroup
+\newbool{incritgroup}
+\boolfalse{incritgroup}
 
 %
 \newif\ifprev@notes@printed
@@ -154,6 +186,7 @@
 	\setbox2=\lastbox
 	\ifvbox2
 	\global\setbox\footbox@temp=\vbox{%
+		\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt%
 		\box2
 		\ifstrequal{#1}{E}{\vskip 2pt}{}% Inyects exactamently 2pt of elastic separation under each footE
 		\unvbox\footbox@temp
@@ -167,7 +200,7 @@
 	\setbox\@outputbox\vbox{%
 		\unvbox\@outputbox
 		\ifprev@notes@printed 
-		\vskip 6pt plus 2pt minus 2pt % Vertical space for each foot entrys.
+		\vskip\betweenapparatusglue % Vertical space for each foot entrys.
 		\else 
 		\vskip\skip#1%
 		\fi
@@ -238,17 +271,91 @@
 	\fi
 }
 
+%
+\newcommand{\EC@printlocalnotes@worker}[4]{%
+	\ifvoid#1\else
+	\ifprev@notes@printed 
+	\vskip\betweenapparatusglue
+	\else 
+	\vskip\beforeapparatusglue
+	\fi
+	#3%
+	\comparedisplay{#2}{quad}{%
+		\begingroup
+		\setbox4=\vbox{%
+			\unvbox#1%
+			\EC@makehboxofhboxes
+		}%
+		\endgroup
+		\setbox0=\hbox{\unhbox\footbox@temp \EC@removehboxes}%
+		\vbox{%
+			\hsize=\textwidth
+			\footfontsize
+			\leftskip=0pt\relax
+			\rightskip=0pt\relax
+			\parfillskip=0pt plus 1fil\relax
+			\parindent=\csuse{foot#4parindent}%
+			\hangindent=\csuse{foot#4hangindent}%
+			\hangafter=1
+			\selectfont
+			\unhbox0\par
+		}%
+	}{%
+		\begingroup
+		\footfontsize
+		\ifstrequal{#4}{E}{%
+			\setbox4=\vbox{%
+				\unvbox#1%
+				\EC@printblocknotes{#4}%
+			}%
+			\vbox{%
+				\hsize=\textwidth
+				\leftskip=0pt\relax
+				\rightskip=0pt\relax
+				\parfillskip=0pt plus 1fil\relax
+				\parindent=\csuse{foot#4parindent}%
+				\hangindent=\csuse{foot#4hangindent}%
+				\hangafter=1
+				\unvbox\footbox@temp
+			}%
+		}{%
+			\vbox{%
+				\hsize=\textwidth
+				\leftskip=0pt\relax
+				\rightskip=0pt\relax
+				\parfillskip=0pt plus 1fil\relax
+				\parindent=\csuse{foot#4parindent}%
+				\hangindent=\csuse{foot#4hangindent}%
+				\hangafter=1
+				\selectfont
+				\unvbox#1%
+			}%
+		}%
+		\endgroup
+	}%
+	\global\prev@notes@printedtrue
+	\fi
+}
+
+\newcommand{\EC@printlocalnotes}{%
+	\global\prev@notes@printedfalse
+	\global\let\last@printed@line\@empty
+	\begingroup
+	\footfontsize\selectfont
+	\EC@printlocalnotes@worker{\local@footTbox}{\EC@display@T}{\footTrule}{T}%
+	\EC@printlocalnotes@worker{\local@footAbox}{\EC@display@A}{\footArule}{A}%
+	\EC@printlocalnotes@worker{\local@footEbox}{\EC@display@E}{\footErule}{E}%
+	\endgroup
+}
+
 % Output routine.
 \newcommand*{\simplecritical@doextrafeet}{%
 	\global\prev@notes@printedfalse
 	\global\let\last@printed@line\@empty % Resets duplicated lines detector in each pages.
-	
 	% 1- Testimonia/witnesses (footT).
 	\EC@printnotes{\footTins}{\EC@display@T}{\footTrule}{T}%
-	
 	% 2- Apparatus criticus (footA).
 	\EC@printnotes{\footAins}{\EC@display@A}{\footArule}{A}%
-	
 	% 3- Explicatio/explanation, conventional footnote use (footE).
 	\EC@printnotes{\footEins}{\EC@display@E}{\footErule}{E}%
 }
@@ -274,22 +381,22 @@
 	
 	\count\footAins=1000
 	\dimen\footAins=0.7\textheight
-	\skip\footAins=10pt plus 4pt minus 2pt
+	\skip\footAins=\beforeapparatusglue
 	
 	\count\footTins=1000
 	\dimen\footTins=0.7\textheight
-	\skip\footTins=10pt plus 4pt minus 2pt
+	\skip\footTins=\beforeapparatusglue
 	
 	\count\footEins=1000
 	\dimen\footEins=0.7\textheight
-	\skip\footEins=10pt plus 4pt minus 2pt
+	\skip\footEins=\beforeapparatusglue
 	
 	% Output.
 	\patchcmd{\@makecol}%
 	{\ifvbox\@kludgeins}%
 	{\simplecritical@doextrafeet\ifvbox\@kludgeins}%
-	{\typeout{simplecritical: Rutina de salida de pagina enlazada con exito.}}%
-	{\PackageError{simplecritical}{No se pudo enlazar la rutina de salida}{}}%
+	%{\typeout{simplecritical: Rutina de salida de pagina enlazada con exito.}}%
+	%{\PackageError{simplecritical}{No se pudo enlazar la rutina de salida}{}}%
 }
 
 % Write protection in titles, indexes and heads.
@@ -309,10 +416,18 @@
 		\setbox0=\hbox{\footfontsize\print@footA@entry{\thisbnum}{#2}}%
 		\dp0=0pt\relax
 		\ht0=\EC@fudgefactor\wd0\relax
-		\insert\footAins{%
-			\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt%
-			\box0
-			\penalty -50 %
+		\ifbool{incritgroup}{%
+			\global\setbox\local@footAbox=\vbox{%
+				\unvbox\local@footAbox
+				\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\parskip=0pt\relax
+				\box0
+			}%
+		}{%
+			\insert\footAins{%
+				\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt%
+				\box0
+				\penalty -50 %
+			}%
 		}%
 		\endgroup
 	}%
@@ -328,13 +443,29 @@
 			\setbox0=\hbox{\footfontsize\EC@noteTitem{\print@footT@marker{\thisbnum}{#2}}{\csuse{footT@text@\thisbnum @#2}}}%
 			\dp0=0pt\relax
 			\ht0=\EC@fudgefactor\wd0\relax
-			\insert\footTins{\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\box0\penalty -50}%
+			\ifbool{incritgroup}{%
+				\global\setbox\local@footTbox=\vbox{%
+					\unvbox\local@footTbox
+					\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\parskip=0pt\relax
+					\box0
+				}%
+			}{%
+				\insert\footTins{\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\box0\penalty -50}%
+			}%
 			\endgroup
 		}%
 		{%
 			\begingroup
 			\edef\thisbnum{#1}%
-			\insert\footTins{\vbox{\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footTparindent\hangindent=\footThangindent\EC@noteTitem{\print@footT@marker{\thisbnum}{#2}}{\csuse{footT@text@\thisbnum @#2}}}}%
+			\ifbool{incritgroup}{%
+				\global\setbox\local@footTbox=\vbox{%
+					\unvbox\local@footTbox
+					\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\parskip=0pt\relax
+					\vbox{\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footTparindent\hangindent=\footThangindent\EC@noteTitem{\print@footT@marker{\thisbnum}{#2}}{\csuse{footT@text@\thisbnum @#2}}}%
+				}%
+			}{%
+				\insert\footTins{\vbox{\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footTparindent\hangindent=\footThangindent\EC@noteTitem{\print@footT@marker{\thisbnum}{#2}}{\csuse{footT@text@\thisbnum @#2}}}}%
+			}%
 			\endgroup
 		}%
 	}%
@@ -350,13 +481,29 @@
 			\setbox0=\hbox{\footfontsize\EC@noteEitem{\print@footE@marker{\thisbnum}{#2}}{\csuse{footE@text@\thisbnum @#2}}}%
 			\dp0=0pt\relax
 			\ht0=\EC@fudgefactor\wd0\relax
-			\insert\footEins{\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\box0\penalty -50}%
+			\ifbool{incritgroup}{%
+				\global\setbox\local@footEbox=\vbox{%
+					\unvbox\local@footEbox
+					\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\parskip=0pt\relax
+					\box0
+				}%
+			}{%
+				\insert\footEins{\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\box0\penalty -50}%
+			}%
 			\endgroup
 		}%
 		{%
 			\begingroup
 			\edef\thisbnum{#1}%
-			\insert\footEins{\vbox{\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footEparindent\hangindent=\footEhangindent\EC@noteEitem{\print@footE@marker{\thisbnum}{#2}}{\csuse{footE@text@\thisbnum @#2}}}}%
+			\ifbool{incritgroup}{%
+				\global\setbox\local@footEbox=\vbox{%
+					\unvbox\local@footEbox
+					\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\parskip=0pt\relax
+					\vbox{\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footEparindent\hangindent=\footEhangindent\EC@noteEitem{\print@footE@marker{\thisbnum}{#2}}{\csuse{footE@text@\thisbnum @#2}}}%
+				}%
+			}{%
+				\insert\footEins{\vbox{\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footEparindent\hangindent=\footEhangindent\EC@noteEitem{\print@footE@marker{\thisbnum}{#2}}{\csuse{footE@text@\thisbnum @#2}}}}%
+			}%
 			\endgroup
 		}%
 	}%
@@ -367,19 +514,12 @@
 	\global\absline@num=0
 	\global\line@num=0
 	\global\footA@count=0
-	\setcounter{footT}{0}%
-	\setcounter{footE}{0}%
-	\global\setbox\footTins=\box\voidb@x
-	\global\setbox\footAins=\box\voidb@x
-	\global\setbox\footEins=\box\voidb@x
 	\boolfalse{numberedpar}%
 	\global\advance\bnumcount by 1\relax%
 	% Reseting counters for current compilation.
 	\global\absline@num=0
 	\global\line@num=0
 	\global\footA@count=0
-	\setcounter{footT}{0}%
-	\setcounter{footE}{0}%
 }
 
 \newcommand{\enum}{% Close the environment.
@@ -398,12 +538,12 @@
 \newbox\EC@stackpatchA
 \newbox\EC@stackpatchAA
 
-\newcommand{\EC@stackset}[1]{% #1 = índice (1..6)
+\newcommand{\EC@stackset}[1]{%
 	\ifcase#1\or
 	\global\setbox\EC@stackpatchA=\box\one@line\or
 	\global\setbox\EC@stackpatchAA=\box\one@line\fi
 }
-\newcommand{\EC@stackget}[1]{% #1 = índice (1..8)
+\newcommand{\EC@stackget}[1]{%
 	\ifcase#1\or
 	\global\setbox\one@line=\box\EC@stackpatchA\or
 	\global\setbox\one@line=\box\EC@stackpatchAA\fi
@@ -586,6 +726,7 @@
 \newcommand{\samelineseparatorA}{\char"02016}
 \newcommand{\lemmaseparatorA}{]}
 
+%
 \newcommand{\print@footA@entry}[2]{%
 	\begingroup
 	\footfontsize
@@ -607,13 +748,14 @@
 	\ifcsvoid{last@printed@line}{%
 		\def\print@ref{\textbf{\line@ref}}%
 	}{%
-		\ifcsequal{last@printed@line}{footA@line@#1@#2}{%
-			\def\print@ref{\textbf{\samelineseparatorA}\enskip}%
-		}{%
-			\def\print@ref{\textbf{\line@ref}}%
-		}%
+		\edef\current@line@sig{#1@\line@ref}%
+		\ifx\last@printed@line\current@line@sig
+		\def\print@ref{\textbf{\samelineseparatorA}\enskip}%
+		\else
+		\def\print@ref{\textbf{\line@ref}}%
+		\fi
 	}%
-	\global\csletcs{last@printed@line}{footA@line@#1@#2}%
+	\csxdef{last@printed@line}{#1@\line@ref}%
 	\else
 	\def\print@ref{\textbf{\line@ref--\line@ref@end}}%
 	\global\let\last@printed@line\empty
@@ -762,6 +904,53 @@
 		}%
 	}%
 	\endgroup
+}
+
+% "critgroup" enviroment for isolated footnotes in differents critical editions of fragments.
+\newenvironment{critgroup}{%
+	\edef\saved@footT{\the\value{footT}}%
+	\edef\saved@footE{\the\value{footE}}%
+	\setcounter{footT}{0}% Reset counters locally in critgroup.
+	\setcounter{footE}{0}%
+	\global\setbox\local@footTbox=\box\voidb@x
+	\global\setbox\local@footAbox=\box\voidb@x
+	\global\setbox\local@footEbox=\box\voidb@x
+	\ifdefempty{\EC@grouplinenummargin}{}{%
+		\let\EC@linenummargin\EC@grouplinenummargin
+	}%
+	\ifbool{group@nummarginsep@set}{%
+		\leftlinenumsep=\groupleftlinenumsep
+		\rightlinenumsep=\grouprightlinenumsep
+	}{}%
+	\let\normal@insert\insert
+	\long\def\insert##1##2{%
+		\ifx##1\footTins
+		\global\setbox\local@footTbox=\vbox{%
+			\unvbox\local@footTbox
+			\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\parskip=0pt\relax
+			##2%
+		}%
+		\else\ifx##1\footAins
+		\global\setbox\local@footAbox=\vbox{%
+			\unvbox\local@footAbox
+			\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\parskip=0pt\relax
+			##2%
+		}%
+		\else\ifx##1\footEins
+		\global\setbox\local@footEbox=\vbox{%
+			\unvbox\local@footEbox
+			\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\parskip=0pt\relax
+			##2%
+		}%
+		\else
+		\normal@insert##1{##2}%
+		\fi\fi\fi
+	}%
+}{%
+	\par
+	\EC@printlocalnotes
+	\setcounter{footT}{\saved@footT}%
+	\setcounter{footE}{\saved@footE}%
 }
 %
 \endinput
