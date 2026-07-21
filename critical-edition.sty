@@ -1,4 +1,4 @@
-%%%% critical-edition.sty → Ioannes Bracmanus (2026), licensed under The LaTeX Project Public License
+%%%% critical-edition.sty → Ioannes Bracmanus (2026), licensed under The LaTeX Project Public License.
 %
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesPackage{critical-edition}[2026/04/23 a simple package for critical editions]
@@ -88,7 +88,7 @@
 \global\beforeapparatusglue=10pt plus 4pt minus 2pt
 
 \newskip\betweenapparatusglue
-\global\betweenapparatusglue=6pt plus 2pt minus 2pt
+\global\betweenapparatusglue=14pt plus 4pt minus 2pt
 
 % Foots body indentation.
 \newdimen\footTparindent % Testimonium or witnesses indentation.
@@ -113,16 +113,11 @@
 	{\global\csgdef{foot#1@useparindent}{true}}%
 	{\global\csgdef{foot#1@useparindent}{false}}%
 }
-
+%
 % Footrule size.
-\newcommand{\footArule}{%
-		\kern4pt
-		\hrule width 2in
-		\kern 2.6pt
-	%	\vskip 2pt
-}
-\newcommand{\footTrule}{\footArule}
-\newcommand{\footErule}{\footArule}
+\newcommand{\footTrule}{\footnoterule}
+\newcommand{\footArule}{\footnoterule}
+\newcommand{\footErule}{\footnoterule}
 
 % Counters for footT and footE, independtly of footA.
 \newcounter{footT}
@@ -141,7 +136,7 @@
 \newbox\local@footAbox
 \newbox\local@footEbox
 
-% Booleano de control para redirección de inserts dentro de critgroup
+% critgroup boolean.
 \newbool{incritgroup}
 \boolfalse{incritgroup}
 
@@ -200,11 +195,13 @@
 	\setbox\@outputbox\vbox{%
 		\unvbox\@outputbox
 		\ifprev@notes@printed 
-		\vskip\betweenapparatusglue % Vertical space for each foot entrys.
+		\vskip\betweenapparatusglue
 		\else 
-		\vskip\skip#1%
+		\vskip\beforeapparatusglue
 		\fi
-		#3% Print footrule.
+		\nointerlineskip
+		\vbox{#3}%
+		\nointerlineskip
 		\comparedisplay{#2}{quad}{%Quad mode.
 			\begingroup
 			\setbox4=\vbox{%
@@ -279,7 +276,9 @@
 	\else 
 	\vskip\beforeapparatusglue
 	\fi
-	#3%
+	\nointerlineskip
+	\vbox{#3}%
+	\nointerlineskip
 	\comparedisplay{#2}{quad}{%
 		\begingroup
 		\setbox4=\vbox{%
