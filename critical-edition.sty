@@ -85,10 +85,10 @@
 % Apparatus typography & glue.
 \newcommand{\footfontsize}{\normalfont\footnotesize}
 \newskip\beforeapparatusglue
-\global\beforeapparatusglue=10pt plus 4pt minus 2pt
+\global\beforeapparatusglue=14pt plus 5pt minus 10pt
 
 \newskip\betweenapparatusglue
-\global\betweenapparatusglue=14pt plus 4pt minus 2pt
+\global\betweenapparatusglue=10pt plus 0pt minus 0pt
 
 % Foots body indentation.
 \newdimen\footTparindent % Testimonium or witnesses indentation.
@@ -173,22 +173,6 @@
 	\ifhbox0{\EC@removehboxes}\unhbox0 \fi
 }
 
-%
-\newcommand*{\EC@printblocknotes}[1]{% #1 =for T, A or E series.
-	\global\setbox\footbox@temp=\vbox{}%
-	\loop
-	\unpenalty\unskip\unkern
-	\setbox2=\lastbox
-	\ifvbox2
-	\global\setbox\footbox@temp=\vbox{%
-		\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt%
-		\box2
-		\ifstrequal{#1}{E}{\vskip 2pt}{}% Inyects exactamently 2pt of elastic separation under each footE
-		\unvbox\footbox@temp
-	}%
-	\repeat
-}
-
 % Processing blocks function of footnotes (block vs quad).
 \newcommand{\EC@printnotes}[4]{
 	\ifvoid#1\else
@@ -228,38 +212,17 @@
 			% Block mode.
 			\begingroup
 			\footfontsize
-			\ifstrequal{#4}{E}{%
-				% A dynamic treatment for footE.
-				\setbox4=\vbox{%
-					\unvbox#1%
-					\EC@printblocknotes{#4}%
-				}%
-				\vbox{%
-					\hsize=\textwidth
-					\leftskip=0pt\relax
-					\rightskip=0pt\relax
-					\parfillskip=0pt plus 1fil\relax
-					%
-					\parindent=\csuse{foot#4parindent}%
-					\hangindent=\csuse{foot#4hangindent}%
-					\hangafter=1
-					\unvbox\footbox@temp
-				}%
-			}{%
-				% Standard for the rest foots.
-				\vbox{%
-					\hsize=\textwidth
-					%
-					\leftskip=0pt\relax
-					\rightskip=0pt\relax
-					\parfillskip=0pt plus 1fil\relax
-					%
-					\parindent=\csuse{foot#4parindent}%
-					\hangindent=\csuse{foot#4hangindent}%
-					\hangafter=1
-					\selectfont
-					\unvbox#1%
-				}%
+			\vbox{%
+				\hsize=\textwidth
+				\leftskip=0pt\relax
+				\rightskip=0pt\relax
+				\parfillskip=0pt plus 1fil\relax
+				%
+				\parindent=\csuse{foot#4parindent}%
+				\hangindent=\csuse{foot#4hangindent}%
+				\hangafter=1
+				\selectfont
+				\unvbox#1%
 			}%
 			\endgroup
 		}%
@@ -302,33 +265,17 @@
 	}{%
 		\begingroup
 		\footfontsize
-		\ifstrequal{#4}{E}{%
-			\setbox4=\vbox{%
-				\unvbox#1%
-				\EC@printblocknotes{#4}%
-			}%
-			\vbox{%
-				\hsize=\textwidth
-				\leftskip=0pt\relax
-				\rightskip=0pt\relax
-				\parfillskip=0pt plus 1fil\relax
-				\parindent=\csuse{foot#4parindent}%
-				\hangindent=\csuse{foot#4hangindent}%
-				\hangafter=1
-				\unvbox\footbox@temp
-			}%
-		}{%
-			\vbox{%
-				\hsize=\textwidth
-				\leftskip=0pt\relax
-				\rightskip=0pt\relax
-				\parfillskip=0pt plus 1fil\relax
-				\parindent=\csuse{foot#4parindent}%
-				\hangindent=\csuse{foot#4hangindent}%
-				\hangafter=1
-				\selectfont
-				\unvbox#1%
-			}%
+		\vbox{%
+			\hsize=\textwidth
+			\leftskip=0pt\relax
+			\rightskip=0pt\relax
+			\parfillskip=0pt plus 1fil\relax
+			%
+			\parindent=\csuse{foot#4parindent}%
+			\hangindent=\csuse{foot#4hangindent}%
+			\hangafter=1
+			\selectfont
+			\unvbox#1%
 		}%
 		\endgroup
 	}%
@@ -460,10 +407,14 @@
 				\global\setbox\local@footTbox=\vbox{%
 					\unvbox\local@footTbox
 					\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\parskip=0pt\relax
-					\vbox{\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footTparindent\hangindent=\footThangindent\EC@noteTitem{\print@footT@marker{\thisbnum}{#2}}{\csuse{footT@text@\thisbnum @#2}}}%
+					\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footTparindent\hangindent=\footThangindent\EC@noteTitem{\print@footT@marker{\thisbnum}{#2}}{\csuse{footT@text@\thisbnum @#2}}%
 				}%
 			}{%
-				\insert\footTins{\vbox{\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footTparindent\hangindent=\footThangindent\EC@noteTitem{\print@footT@marker{\thisbnum}{#2}}{\csuse{footT@text@\thisbnum @#2}}}}%
+				\insert\footTins{%
+					\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footTparindent\hangindent=\footThangindent
+					\vskip 2pt %
+					\EC@noteTitem{\print@footT@marker{\thisbnum}{#2}}{\csuse{footT@text@\thisbnum @#2}}%
+				}%
 			}%
 			\endgroup
 		}%
@@ -498,10 +449,14 @@
 				\global\setbox\local@footEbox=\vbox{%
 					\unvbox\local@footEbox
 					\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\parskip=0pt\relax
-					\vbox{\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footEparindent\hangindent=\footEhangindent\EC@noteEitem{\print@footE@marker{\thisbnum}{#2}}{\csuse{footE@text@\thisbnum @#2}}}%
+					\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footEparindent\hangindent=\footEhangindent\EC@noteEitem{\print@footE@marker{\thisbnum}{#2}}{\csuse{footE@text@\thisbnum @#2}}%
 				}%
 			}{%
-				\insert\footEins{\vbox{\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footEparindent\hangindent=\footEhangindent\EC@noteEitem{\print@footE@marker{\thisbnum}{#2}}{\csuse{footE@text@\thisbnum @#2}}}}%
+				\insert\footEins{%
+					\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footEparindent\hangindent=\footEhangindent
+					\vskip 2pt %
+					\EC@noteEitem{\print@footE@marker{\thisbnum}{#2}}{\csuse{footE@text@\thisbnum @#2}}%
+				}%
 			}%
 			\endgroup
 		}%
@@ -865,7 +820,11 @@
 			\endgroup
 		}%
 		{%
-			\insert\footTins{\vbox{\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footTparindent\hangindent=\footThangindent\EC@noteTitem{\print@footT@marker{\the\bnumcount}{\the\value{footT}}}{\unexpanded{#2}}}}%
+			\insert\footTins{%
+				\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footTparindent\hangindent=\footThangindent
+				\vskip 2pt %
+				\EC@noteTitem{\print@footT@marker{\the\bnumcount}{\the\value{footT}}}{\unexpanded{#2}}%
+			}%
 		}%
 	}%
 	\endgroup
@@ -899,7 +858,11 @@
 			\endgroup
 		}%
 		{%
-			\insert\footEins{\vbox{\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footEparindent\hangindent=\footEhangindent\EC@noteEitem{\print@footE@marker{\the\bnumcount}{\the\value{footE}}}{\unexpanded{#2}}}}%
+			\insert\footEins{%
+				\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footEparindent\hangindent=\footEhangindent
+				\vskip 2pt % Inyecta separación elástica entre notas de explicatio consecutivas
+				\EC@noteEitem{\print@footE@marker{\the\bnumcount}{\the\value{footE}}}{\unexpanded{#2}}%
+			}%
 		}%
 	}%
 	\endgroup
