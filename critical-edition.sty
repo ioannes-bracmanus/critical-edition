@@ -561,6 +561,54 @@
 	\endgroup
 }
 
+\newdimen\pwidth
+\pwidth=0.65\textwidth
+\newtoggle{inpoetical}
+\global\togglefalse{inpoetical}
+
+\newcommand{\postart}[1][\pwidth]{% Open the numbered poetical paragraph.
+	\par
+	\global\booltrue{numberedpar}%
+	\global\toggletrue{inpoetical}%
+	\ifstrempty{#1}{}{\global\pwidth=#1\relax}%
+	\global\setbox\rawtext=\vbox\bgroup
+	\hsize=\textwidth
+	\parindent=\EC@savedparindent
+	\parskip=\z@\relax
+	\lineskiplimit=-1000pt
+	\normalbaselines
+	\topskip=\z@
+	\brokenpenalty=\z@
+	\clubpenalty=\z@
+	\displaywidowpenalty=\z@
+	\interlinepenalty=\z@
+	\predisplaypenalty=\z@
+	\postdisplaypenalty=\z@
+	\widowpenalty=\z@
+	\setlength{\dimen0}{\dimexpr(\textwidth-\pwidth)/2\relax}%
+	\advance\leftskip by \dimen0\relax
+	\advance\rightskip by \dimen0\relax
+}
+
+\newcommand{\poend}{% Close the numbered poetical paragraph environment.
+	\par
+	\egroup 
+	\global\boolfalse{numberedpar}%
+	\begingroup
+	\vbadness=10000
+	\loop\ifvbox\rawtext
+	{\splittopskip=\z@ 
+		\global\setbox\one@line=\vsplit\rawtext to \baselineskip}%
+	\EC@chunkcount=0\relax
+	\setbox\EC@dummybox=\vbox{%
+		\unvbox\one@line
+		\EC@drainchunk
+	}%
+	\EC@printchunk
+	\repeat
+	\endgroup
+}
+
 % Redefine the line in the counter system.
 \newcommand{\setotherline}[1]{%
 	\global\line@num=#1\relax
@@ -582,8 +630,9 @@
 		\ifcsdef{line@footT@trigger@\the\bnumcount @\the\line@num}{\csuse{line@footT@trigger@\the\bnumcount @\the\line@num}}{}%
 		\ifcsdef{line@footA@trigger@\the\bnumcount @\the\line@num}{\csuse{line@footA@trigger@\the\bnumcount @\the\line@num}}{}%
 		\ifcsdef{line@footE@trigger@\the\bnumcount @\the\line@num}{\csuse{line@footE@trigger@\the\bnumcount @\the\line@num}}{}%
+		%
 		\kern\dimexpr\textwidth-\wd\one@line\relax
-		\unhbox\one@line%
+		\unhbox\one@line
 	}%
 }
 
