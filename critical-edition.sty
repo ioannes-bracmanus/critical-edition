@@ -1,13 +1,19 @@
 %%%% critical-edition.sty → Ioannes Bracmanus (2026), licensed under The LaTeX Project Public License.
 %
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{critical-edition}[2026/04/23 a simple package for critical editions]
+\ProvidesPackage{critical-edition}[26/07/2026 a simple package for critical editions]
 %
 \RequirePackage{etoolbox}
 \RequirePackage{xparse}
-\RequirePackage{keyval}
 %
+\RequirePackage{keyval}
 \define@key{CE@footAopt}{ad}{\gdef\CE@footA@temp@ad{#1}}
+
+% Centralized writing helper for aux file.
+\newcommand{\CE@write@aux}[1]{%
+	\edef\CE@act{\noexpand\write\noexpand\@auxout{#1}}%
+	\CE@act
+}
 
 % Counters (Internal & Global under CE namespace).
 \newcount\CE@absline@num
@@ -22,15 +28,14 @@
 \newbox\CE@footbox@temp
 
 \newdimen\leftlinenumsep
-\leftlinenumsep=10pt
+\leftlinenumsep=6pt
 \newdimen\rightlinenumsep
-\rightlinenumsep=10pt
+\rightlinenumsep=6pt
 
 \newcommand{\nummarginsep}[2]{%
 	\ifstrempty{#1}{}{\leftlinenumsep=#1\relax}%
 	\ifstrempty{#2}{}{\rightlinenumsep=#2\relax}%
 }
-
 \newcommand{\linenummargin}[1]{%
 	\gdef\CE@linenummargin{#1}%
 }
@@ -604,12 +609,8 @@
 \newcommand{\print@line}{%
 	\checklinemargin%
 	\hbox to \textwidth{%
-		\protected@write\@auxout{}{%
-			\string\scLinePage{\the\CE@bnumcount}{\the\CE@line@num}{\the\c@page}%
-		}%
-		\protected@write\@auxout{}{%
-			\string\scNL{\the\CE@bnumcount}{\the\CE@line@num}%
-		}%
+		\CE@write@aux{\string\scLinePage{\the\CE@bnumcount}{\the\CE@line@num}{\noexpand\number\c@page}}%
+		\CE@write@aux{\string\scNL{\the\CE@bnumcount}{\the\CE@line@num}}%
 		\make@margin@number
 		\ifcsdef{line@footT@trigger@\the\CE@bnumcount @\the\CE@line@num}{\csuse{line@footT@trigger@\the\CE@bnumcount @\the\CE@line@num}}{}%
 		\ifcsdef{line@footA@trigger@\the\CE@bnumcount @\the\CE@line@num}{\csuse{line@footA@trigger@\the\CE@bnumcount @\the\CE@line@num}}{}%
@@ -691,9 +692,7 @@
 	\else
 	\csxdef{footA@endline@\the\CE@bnumcount @\the\CE@footA@count}{\unexpanded\expandafter{\CE@footA@temp@ad}}%
 	\fi
-	\protected@write\@auxout{}{%
-		\string\scFootAAssoc{\the\CE@bnumcount}{\the\CE@footA@count}{0pt}%
-	}%
+	\CE@write@aux{\string\scFootAAssoc{\the\CE@bnumcount}{\the\CE@footA@count}{0pt}}%
 }
 
 \newcommand{\samelineseparatorA}{\char"02016}
@@ -819,9 +818,7 @@
 	\begingroup
 	\ifbool{CE@numberedpar}{%
 		\csgdef{footT@text@\the\CE@bnumcount @\the\value{footT}}{#2}%
-		\protected@write\@auxout{}{%
-			\string\scFootTAssoc{\the\CE@bnumcount}{\the\value{footT}}{0pt}%
-		}%
+		\CE@write@aux{\string\scFootTAssoc{\the\CE@bnumcount}{\the\value{footT}}{0pt}}%
 	}{%
 		\comparedisplay{\CE@display@T}{quad}%
 		{%
@@ -856,9 +853,7 @@
 	\begingroup
 	\ifbool{CE@numberedpar}{%
 		\csgdef{footE@text@\the\CE@bnumcount @\the\value{footE}}{#2}%
-		\protected@write\@auxout{}{%
-			\string\scFootEAssoc{\the\CE@bnumcount}{\the\value{footE}}{0pt}%
-		}%
+		\CE@write@aux{\string\scFootEAssoc{\the\CE@bnumcount}{\the\value{footE}}{0pt}}%
 	}{%
 		\comparedisplay{\CE@display@E}{quad}%
 		{%
