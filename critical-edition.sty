@@ -125,7 +125,9 @@
 
 % Counters for footT and footE, independtly of footA.
 \newcounter{footT}
+\let\thefootT\undefined
 \newcounter{footE}
+\let\thefootE\undefined
 
 \newdimen\CE@savedparindent
 \CE@savedparindent=0pt
@@ -716,18 +718,18 @@
 	\def\the@variant{\csuse{footA@var@#1@#2}}%
 	\ifx\line@ref@end\empty
 	\ifcsvoid{CE@last@printed@line}{%
-		\def\print@ref{\textbf{\line@ref}}%
+		\def\print@ref{\footAmark{\line@ref}}%
 	}{%
 		\edef\current@line@sig{#1@\line@ref}%
 		\ifx\CE@last@printed@line\current@line@sig
-		\def\print@ref{\textbf{\samelineseparatorA}\enskip}%
+		\def\print@ref{\footAmark{\samelineseparatorA}\enskip}%
 		\else
-		\def\print@ref{\textbf{\line@ref}}%
+		\def\print@ref{\footAmark{\line@ref}}%
 		\fi
 	}%
 	\csxdef{CE@last@printed@line}{#1@\line@ref}%
 	\else
-	\def\print@ref{\textbf{\line@ref--\line@ref@end}}%
+	\def\print@ref{\footAmark{\line@ref--\line@ref@end}}%
 	\global\let\CE@last@printed@line\empty
 	\fi
 	\print@ref\space
@@ -771,9 +773,9 @@
 \newcommand{\CE@noteE@quad}[2]{#1#2\quad}
 
 % Number print or not.
-\newcommand{\thefootA}[1]{\textbf{#1}}
-\renewcommand{\thefootT}{\arabic{footT}} 
-\renewcommand{\thefootE}{\arabic{footE}} 
+\newcommand{\thefootA}[1]{\footAmark{#1}}
+\newcommand{\thefootT}{\arabic{footT}}
+\newcommand{\thefootE}{\arabic{footE}}
 
 % Superscript body number appearance.
 \newcommand{\footTcall}[1]{\textsuperscript{#1}}
@@ -781,6 +783,7 @@
 
 % Superscript foot number appearance.
 \newcommand{\footTmark}[1]{\textbf{\textsuperscript{#1}}}
+\newcommand{\footAmark}[1]{\textbf{#1}}
 \newcommand{\footEmark}[1]{\textbf{\textsuperscript{#1}}}
 
 \newcommand{\print@footT@marker}[2]{%
@@ -791,6 +794,7 @@
 	{{\footTmark{\thefootT}}\space}%
 	\endgroup
 }
+
 \newcommand{\print@footE@marker}[2]{%
 	\begingroup
 	\setcounter{footE}{#2}%
