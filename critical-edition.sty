@@ -26,6 +26,7 @@
 \newbox\CE@rawtext
 \newbox\CE@one@line
 \newbox\CE@footbox@temp
+\newbox\CE@box@footC
 
 \newdimen\leftlinenumsep
 \leftlinenumsep=6pt
@@ -99,10 +100,12 @@
 \newdimen\footTparindent % Testimonium or witnesses indentation.
 \newdimen\footAparindent % Variants apparatus.
 \newdimen\footEparindent % Explicatio or explanation.
+\newdimen\footCparindent % Commentarium or comment.
 
 \newdimen\footAhangindent  \footAhangindent=0pt
 \newdimen\footThangindent  \footThangindent=0pt
 \newdimen\footEhangindent  \footEhangindent=0pt
+\newdimen\footChangindent  \footChangindent=0pt
 
 \newcommand{\comparedisplay}[4]{% #1=macro, #2=string, #3=true, #4=false
 	\ifdefstring{#1}{#2}{#3}{#4}%
@@ -113,9 +116,13 @@
 
 % Actives the indentation in footT and footE.
 \newcommand{\footindent}[2][T]{%
-	\ifstrequal{#2}{par}%
-	{\global\csgdef{foot#1@useparindent}{true}}%
-	{\global\csgdef{foot#1@useparindent}{false}}%
+	\def\CE@set@indent##1{%
+		\ifstrequal{#2}{par}%
+		{\global\csgdef{foot##1@useparindent}{true}}%
+		{\global\csgdef{foot##1@useparindent}{false}}%
+	}%
+	\let\do\CE@set@indent
+	\docsvlist{#1}%
 }
 
 % Footrule size.
@@ -128,6 +135,8 @@
 \let\thefootT\undefined
 \newcounter{footE}
 \let\thefootE\undefined
+\newcounter{footC}
+\let\thefootC\undefined
 
 \newdimen\CE@savedparindent
 \CE@savedparindent=0pt
@@ -320,6 +329,10 @@
 	{\footEparindent=0pt}%
 	{\footEparindent=\CE@savedparindent}%
 	
+	\ifcsstring{footC@useparindent}{false}%
+	{\footCparindent=0pt}%
+	{\footCparindent=\CE@savedparindent}%
+	
 	\CE@setfudge{\CE@fudgefactor}{\textwidth}%
 	
 	\count\footAins=1000
@@ -342,11 +355,11 @@
 }
 
 % Write protection in titles, indexes and heads.
-\pretocmd{\addcontentsline}{\begingroup\let\footT\@gobble\let\footE\@gobble\let\footA\@gobbletwo}{}{}
+\pretocmd{\addcontentsline}{\begingroup\let\footT\@gobble\let\footE\@gobble\let\footA\@gobbletwo\let\footC\@gobble}{}{}
 \apptocmd{\addcontentsline}{\endgroup}{}{}
-\pretocmd{\markboth}{\begingroup\let\footT\@gobble\let\footE\@gobble\let\footA\@gobbletwo}{}{}
+\pretocmd{\markboth}{\begingroup\let\footT\@gobble\let\footE\@gobble\let\footA\@gobbletwo\let\footC\@gobble}{}{}
 \apptocmd{\markboth}{\endgroup}{}{}
-\pretocmd{\markright}{\begingroup\let\footT\@gobble\let\footE\@gobble\let\footA\@gobbletwo}{}{}
+\pretocmd{\markright}{\begingroup\let\footT\@gobble\let\footE\@gobble\let\footA\@gobbletwo\let\footC\@gobble}{}{}
 \apptocmd{\markright}{\endgroup}{}{}
 
 \newcommand{\scFootAAssoc}[3]{% #1 = bnumcount, #2 = footA_count, #3 = space
@@ -745,25 +758,19 @@
 \gdef\CE@display@A{quad}
 
 \newcommand{\foottype}[2][T]{%
-	\ifboolexpr{ test {\ifstrequal{#2}{quad}} }{%
-		\ifstrequal{#1}{T}{%
-			\gdef\CE@display@T{#2}%
-			\global\let\CE@noteTitem\CE@noteT@quad%
-		}{}%
-		\ifstrequal{#1}{E}{%
-			\gdef\CE@display@E{#2}%
-			\global\let\CE@noteEitem\CE@noteE@quad%
-		}{}%
-	}{%
-		\ifstrequal{#1}{T}{%
-			\gdef\CE@display@T{block}%
-			\global\let\CE@noteTitem\CE@noteT@block%
-		}{}%
-		\ifstrequal{#1}{E}{%
-			\gdef\CE@display@E{block}%
-			\global\let\CE@noteEitem\CE@noteE@block%
-		}{}%
+	\def\CE@set@foottype##1{%
+		\ifstrequal{#2}{quad}{%
+			\ifstrequal{##1}{T}{\gdef\CE@display@T{quad}\global\let\CE@noteTitem\CE@noteT@quad}{}%
+			\ifstrequal{##1}{E}{\gdef\CE@display@E{quad}\global\let\CE@noteEitem\CE@noteE@quad}{}%
+			\ifstrequal{##1}{C}{\gdef\CE@display@C{quad}\global\let\CE@noteCitem\CE@noteC@quad}{}%
+		}{%
+			\ifstrequal{##1}{T}{\gdef\CE@display@T{block}\global\let\CE@noteTitem\CE@noteT@block}{}%
+			\ifstrequal{##1}{E}{\gdef\CE@display@E{block}\global\let\CE@noteEitem\CE@noteE@block}{}%
+			\ifstrequal{##1}{C}{\gdef\CE@display@C{block}\global\let\CE@noteCitem\CE@noteC@block}{}%
+		}%
 	}%
+	\let\do\CE@set@foottype
+	\docsvlist{#1}%
 }
 
 % Foot format.
@@ -771,20 +778,25 @@
 \newcommand{\CE@noteE@block}[2]{#1#2\par}
 \newcommand{\CE@noteT@quad}[2]{#1#2\quad}
 \newcommand{\CE@noteE@quad}[2]{#1#2\quad}
+\newcommand{\CE@noteC@block}[2]{#1#2\par}
+\newcommand{\CE@noteC@quad}[2]{#1#2\quad}
 
 % Number print or not.
 \newcommand{\thefootA}[1]{\footAmark{#1}}
 \newcommand{\thefootT}{\arabic{footT}}
 \newcommand{\thefootE}{\arabic{footE}}
+\newcommand{\thefootC}{\arabic{footC}}
 
 % Superscript body number appearance.
 \newcommand{\footTcall}[1]{\textsuperscript{#1}}
 \newcommand{\footEcall}[1]{\textsuperscript{#1}}
+\newcommand{\footCcall}[1]{\textsuperscript{#1)}}
 
 % Superscript foot number appearance.
 \newcommand{\footTmark}[1]{\textsuperscript{#1}}
 \newcommand{\footAmark}[1]{\textbf{#1}}
 \newcommand{\footEmark}[1]{\textsuperscript{#1}}
+\newcommand{\footCmark}[1]{\textbf{#1)}}
 
 \newcommand{\print@footT@marker}[2]{%
 	\begingroup
@@ -804,10 +816,21 @@
 	\endgroup
 }
 
-\gdef\CE@display@T{block}     
-\gdef\CE@display@E{block}     
+\newcommand{\print@footC@marker}[2]{%
+	\begingroup
+	\setcounter{footC}{#2}%
+	\checkdefempty{\thefootC}%
+	{}%
+	{{\footCmark{\thefootC}}\space}%
+	\endgroup
+}
+
+\gdef\CE@display@T{block}
 \let\CE@noteTitem\CE@noteT@block
+\gdef\CE@display@E{block}     
 \let\CE@noteEitem\CE@noteE@block
+\gdef\CE@display@C{block}     
+\let\CE@noteCitem\CE@noteC@block
 
 % The footT (witnesses).
 \NewDocumentCommand{\footT}{o m}{%
@@ -877,6 +900,76 @@
 		}%
 	}%
 	\endgroup
+}
+
+% The footC (comments).
+\NewDocumentCommand{\footC}{o +m}{%
+	\IfValueTF{#1}{%
+		\setcounter{footC}{#1}%
+	}{%
+		\stepcounter{footC}%
+	}%
+	\checkdefempty{\thefootC}%
+	{}%
+	{{\footCcall{\thefootC}}}%
+	\begingroup
+	\comparedisplay{\CE@display@C}{quad}%
+	{%
+		\setbox0=\hbox{\footfontsize\CE@noteCitem{\print@footC@marker{\the\CE@bnumcount}{\the\value{footC}}}{\unexpanded{#2}}}%
+		\dp0=0pt\relax
+		\ht0=\CE@fudgefactor\wd0\relax
+		\global\setbox\CE@box@footC=\vbox{%
+			\unvbox\CE@box@footC
+			\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\parskip=0pt\relax
+			\box0
+		}%
+	}%
+	{%
+		\global\setbox\CE@box@footC=\vbox{%
+			\unvbox\CE@box@footC
+			\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footCparindent\hangindent=\footChangindent
+			\vskip 2pt %
+			\CE@noteCitem{\print@footC@marker{\the\CE@bnumcount}{\the\value{footC}}}{\unexpanded{#2}}%
+		}%
+	}%
+	\endgroup
+}
+
+\newcommand{\printfootC}{%
+	\ifvoid\CE@box@footC\else
+	\par\addvspace{\beforeapparatusglue}%
+	\begingroup
+	\footfontsize\selectfont
+	\comparedisplay{\CE@display@C}{quad}{%
+		\begingroup
+		\setbox4=\vbox{%
+			\unvbox\CE@box@footC
+			\CE@makehboxofhboxes
+		}%
+		\endgroup
+		\setbox0=\hbox{\unhbox\CE@footbox@temp \CE@removehboxes}%
+		\vbox{%
+			\hsize=\textwidth
+			\footfontsize
+			\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax
+			\parindent=\footCparindent\hangindent=\footChangindent\hangafter=1
+			\selectfont
+			\unhbox0\par
+		}%
+	}{%
+		\vbox{%
+			\hsize=\textwidth
+			\footfontsize
+			\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax
+			\parindent=\footCparindent\hangindent=\footChangindent\hangafter=1
+			\selectfont
+			\unvbox\CE@box@footC
+		}%
+	}%
+	\endgroup
+	\global\setbox\CE@box@footC=\box\voidb@x
+	\setcounter{footC}{0}%
+	\fi
 }
 
 % "critgroup" enviroment for isolated footnotes in differents critical editions of fragments.
