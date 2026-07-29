@@ -47,7 +47,7 @@
   Registra una entrada en la **footnoteE** para explicaciones y otros usos generales. La `\footE` en este paquete tiene la función corriente de la clásica `\footnote`.
   
 **`\footC{Texto}`**
-  Registra una entrada en la **footnote**, cuya función es introducir explicaciones detalladas que, según la edición, suelen figurar tras cada capítulo/parte o luego del propio libro, previo al *Apéndice*. A diferencia del resto de footnotes, esta en particular debe ser impresa manualmente durante la compilación tras recoger las entradas, y para hacerlo se debe utilizar el comando `\printfootC` para volcar las entradas donde se prefiera.
+  Registra una entrada en la **footnoteC**, cuya función es introducir explicaciones detalladas que, según la edición, suelen figurar tras cada capítulo/parte o luego del propio libro, previo al *Apéndice*. A diferencia del resto de footnotes, esta en particular debe ser impresa manualmente durante la compilación tras recoger las entradas, y para hacerlo se debe utilizar el comando `\printfootC` para volcar las entradas donde se prefiera.
 
 ---
 
