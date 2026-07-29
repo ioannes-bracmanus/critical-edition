@@ -1,6 +1,6 @@
 # critical-edition
 
-`critical-edition.sty` es un paquete simple y "minimalista" para componer ediciones críticas en LaTeX, desarrollado a través de prompts y programación asistida por IA. Provee a los usuarios de tres tipos de **footnotes** (`\footT`, testimonios; `\footA`, aparato crítico o de variantes; y `\footE`, explicaciones) y un **entorno numerado**.
+**`critical-edition.sty`** es un paquete simple y "minimalista" para componer ediciones críticas en LaTeX, desarrollado a través de prompts y programación asistida por IA. Provee a los usuarios de cuatro tipos de **footnotes** (`\footT`, testimonios; `\footA`, aparato crítico o de variantes; `\footE`, explicaciones; y `footC`, comentarios/adiciones) y un **entorno numerado**.
 
 ## Lista de macros
 
@@ -44,18 +44,21 @@
   **Rango de líneas:** Admite el parámetro opcional `[ad=línea]` cuando una variante abarca múltiples líneas, por ejemplo: si la línea desde la que se referencia es la 140, pero precisa un apunte hasta la 190, entonces → `\footA[ad=190]{lema}{variante}` indicaría que desde la línea 140 hasta la 190 hay un apunte. Además, no fuerza la presencia del `\samelineseparatorA` si se añadiera otra referencia a la línea 140.
 
 **`\footE{Texto}`**  
-  Registra una entrada en el **footnoteE** para explicaciones y otros usos generales. La `\footE` en este paquete tiene la función corriente de la clásica `\footnote`.
+  Registra una entrada en la **footnoteE** para explicaciones y otros usos generales. La `\footE` en este paquete tiene la función corriente de la clásica `\footnote`.
+  
+**`\footC{Texto}`**
+  Registra una entrada en la **footnote**, cuya función es introducir explicaciones detalladas que, según la edición, suelen figurar tras cada capítulo/parte o luego del propio libro, previo al *Apéndice*. A diferencia del resto de footnotes, esta en particular debe ser impresa manualmente durante la compilación tras recoger las entradas, y para hacerlo se debe utilizar el comando `\printfootC` para volcar las entradas donde se prefiera.
 
 ---
 
 ### 4- Modificación de la apariencia del cuerpo de footnotes
 
-**`\foottype[T|E]{quad|block}`**  
-  Configura la disposición visual de las footnotes T o E:
+**`\foottype[T|E|C]{quad|block}`**  
+  Configura la disposición visual de las footnotes T, E o C:
   `block`: Imprime cada footnote como un párrafo independiente (por defecto).
   `quad`: Empaqueta todas las footnotes en un único párrafo horizontal.
 
-**`\footindent[T|A|E]{par|none}`**  
+**`\footindent[T|A|E|C]{par|none}`**  
   Activa (`par`) o desactiva (`none`) la sangría de párrafo en el aparato seleccionado. Por defecto está en `par`.
 
 **`\footAmark{}`**  
@@ -66,6 +69,9 @@
 
 **`\footTcall{}` / `\footEcall{}`**  
   Controlan el formato de la llamada o número referencial en el cuerpo del texto para las entradas T y E (por defecto: `\textsuperscript{#1}`).
+  
+**`\footCcall{}` / `\footCmark`**
+  Controlan el formato de la llamada o número referencial en el cuerpo del texto para la entrada C y el formato del número en el pie de página, respectivamente. Por defecto, para diferenciarse en el cuerpo del texto de las `\footT` y `\footE`, ambas macros están definidas como `\textsuperscript{#1)}`, siendo `)` el diferenciador en ambos casos.
 
 **`\samelineseparatorA`**  
   Define el símbolo separador entre variantes que pertenecen a la misma línea en el aparato crítico, que por defecto es: `\char"02016` (si la tipografía utilizada no contiene el caracter y no hay intenciones de añadirlo, puede modificarse este símbolo separador en el preámbulo con `\renewcommand{\samelineseparatorA}{**nuevo símbolo**}`.
