@@ -51,7 +51,7 @@
 
 ---
 
-### 4- Modificación de la apariencia del cuerpo de footnotes
+### 4) Modificación de la apariencia del cuerpo de footnotes
 
 **`\foottype[T|E|C]{quad|block}`**  
   Configura la disposición visual de las footnotes T, E o C:
