@@ -245,6 +245,7 @@
 
 \newcommand{\CE@printlocalnotes@worker}[4]{%
 	\ifvoid#1\else
+	\par
 	\ifCE@prev@notes@printed 
 	\vskip\betweenapparatusglue
 	\else 
@@ -253,6 +254,8 @@
 	\nointerlineskip
 	\vbox{#3}%
 	\nointerlineskip
+	\prevdepth=-1000pt %
+	\penalty 10000 %
 	\comparedisplay{#2}{quad}{%
 		\begingroup
 		\setbox4=\vbox{%
@@ -261,34 +264,33 @@
 		}%
 		\endgroup
 		\setbox0=\hbox{\unhbox\CE@footbox@temp \CE@removehboxes}%
-		\vbox{%
-			\hsize=\textwidth
-			\footfontsize
-			\leftskip=0pt\relax
-			\rightskip=0pt\relax
-			\parfillskip=0pt plus 1fil\relax
-			\parindent=\csuse{foot#4parindent}%
-			\hangindent=\csuse{foot#4hangindent}%
-			\hangafter=1
-			\selectfont
-			\unhbox0\par
-		}%
+		\begingroup
+		\hsize=\textwidth
+		\footfontsize
+		\leftskip=0pt\relax
+		\rightskip=0pt\relax
+		\parfillskip=0pt plus 1fil\relax
+		\parindent=\csuse{foot#4parindent}%
+		\hangindent=\csuse{foot#4hangindent}%
+		\hangafter=1
+		\selectfont
+		\unhbox0\par
+		\endgroup
 	}{%
 		\begingroup
+		\hsize=\textwidth
 		\footfontsize
-		\vbox{%
-			\hsize=\textwidth
-			\leftskip=0pt\relax
-			\rightskip=0pt\relax
-			\parfillskip=0pt plus 1fil\relax
-			\parindent=\csuse{foot#4parindent}%
-			\hangindent=\csuse{foot#4hangindent}%
-			\hangafter=1
-			\selectfont
-			\unvbox#1%
-		}%
+		\leftskip=0pt\relax
+		\rightskip=0pt\relax
+		\parfillskip=0pt plus 1fil\relax
+		\parindent=\csuse{foot#4parindent}%
+		\hangindent=\csuse{foot#4hangindent}%
+		\hangafter=1
+		\selectfont
+		\unvbox#1\par
 		\endgroup
 	}%
+	\prevdepth=0pt
 	\global\CE@prev@notes@printedtrue
 	\fi
 }
@@ -350,10 +352,15 @@
 	\patchcmd{\@makecol}%
 	{\ifvbox\@kludgeins}%
 	{\simplecritical@doextrafeet\ifvbox\@kludgeins}%
-	{}%
-	{}%
+	{}% Success.
+	{% Failure: warn in the log if another package has modified \@makecol.
+		\PackageWarning{critical-edition}{%
+			Could not patch \string\@makecol.\MessageBreak
+			Critical footnotes and apparatus may not display correctly.\MessageBreak
+			Check for package incompatibilities.%
+		}%
+	}%
 }
-
 % Write protection in titles, indexes and heads.
 \pretocmd{\addcontentsline}{\begingroup\let\footT\@gobble\let\footE\@gobble\let\footA\@gobbletwo\let\footC\@gobble}{}{}
 \apptocmd{\addcontentsline}{\endgroup}{}{}
@@ -503,21 +510,23 @@
 	\global\setbox\CE@stackpatchA=\box\CE@one@line\or
 	\global\setbox\CE@stackpatchAA=\box\CE@one@line\fi
 }
+
 \newcommand{\CE@stackget}[1]{%
 	\ifcase#1\or
 	\global\setbox\CE@one@line=\box\CE@stackpatchA\or
 	\global\setbox\CE@one@line=\box\CE@stackpatchAA\fi
 }
+
 \newcommand{\CE@drainchunk}{%
 	\unskip\unpenalty\unkern
-	\global\setbox\CE@one@line=\lastbox
-	\ifvoid\CE@one@line
-	\else
-	\global\advance\CE@chunkcount by 1\relax
-	\CE@stackset{\the\CE@chunkcount}%
-	\CE@drainchunk
+	\setbox0=\lastbox
+	\ifvoid0\else
+	\advance\CE@chunkcount by 1\relax
+	\toks0=\expandafter{\the\toks0 \CE@printoneline{0}}%
+	\begingroup\unvbox0\CE@drainchunk\endgroup
 	\fi
 }
+
 \newcommand{\CE@printchunk}{%
 	\ifnum\CE@chunkcount>0\relax
 	\CE@stackget{\the\CE@chunkcount}%
@@ -529,7 +538,28 @@
 	\fi
 }
 
-\newcommand{\nstart}{% Open the numbered paragraph environment
+% Line processing: drains lines safely without loop or box type errors.
+\newcommand{\CE@process@lines}{%
+	\begingroup
+	\vbadness=10000
+	\loop\ifdim\ht\CE@rawtext>\z@
+	{\splittopskip=\z@ 
+		\global\setbox\CE@one@line=\vsplit\CE@rawtext to \baselineskip}%
+	\setbox0=\vbox{%
+		\unvbox\CE@one@line
+		\unskip\unpenalty\unkern
+		\global\setbox\CE@one@line=\lastbox
+	}%
+	\ifhbox\CE@one@line
+	\global\advance\CE@absline@num by 1\relax
+	\global\advance\CE@line@num by 1\relax
+	\print@line
+	\fi
+	\repeat
+	\endgroup
+}
+
+\newcommand{\nstart}{%
 	\par
 	\global\booltrue{CE@numberedpar}%
 	\global\setbox\CE@rawtext=\vbox\bgroup
@@ -548,23 +578,11 @@
 	\widowpenalty=\z@
 }
 
-\newcommand{\nend}{% Close the numbered paragraph environment.
+\newcommand{\nend}{%
 	\par
 	\egroup 
 	\global\boolfalse{CE@numberedpar}%
-	\begingroup
-	\vbadness=10000
-	\loop\ifvbox\CE@rawtext
-	{\splittopskip=\z@ 
-		\global\setbox\CE@one@line=\vsplit\CE@rawtext to \baselineskip}%
-	\CE@chunkcount=0\relax
-	\setbox\CE@dummybox=\vbox{%
-		\unvbox\CE@one@line
-		\CE@drainchunk
-	}%
-	\CE@printchunk
-	\repeat
-	\endgroup
+	\CE@process@lines
 }
 
 \newdimen\pwidth
@@ -572,7 +590,7 @@
 \newtoggle{CE@inpoetical}
 \global\togglefalse{CE@inpoetical}
 
-\newcommand{\postart}[1][\pwidth]{% Open the numbered poetical paragraph.
+\newcommand{\postart}[1][\pwidth]{%
 	\par
 	\global\booltrue{CE@numberedpar}%
 	\global\toggletrue{CE@inpoetical}%
@@ -596,23 +614,11 @@
 	\advance\rightskip by \dimen0\relax
 }
 
-\newcommand{\poend}{% Close the numbered poetical paragraph environment.
+\newcommand{\poend}{%
 	\par
 	\egroup 
 	\global\boolfalse{CE@numberedpar}%
-	\begingroup
-	\vbadness=10000
-	\loop\ifvbox\CE@rawtext
-	{\splittopskip=\z@ 
-		\global\setbox\CE@one@line=\vsplit\CE@rawtext to \baselineskip}%
-	\CE@chunkcount=0\relax
-	\setbox\CE@dummybox=\vbox{%
-		\unvbox\CE@one@line
-		\CE@drainchunk
-	}%
-	\CE@printchunk
-	\repeat
-	\endgroup
+	\CE@process@lines
 }
 
 % Redefine the line in the counter system.
@@ -841,7 +847,7 @@
 	}%
 	\checkdefempty{\thefootT}%
 	{}%
-	{{\footTcall{\thefootT}}}
+	{{\footTcall{\thefootT}}}%
 	\begingroup
 	\ifbool{CE@numberedpar}{%
 		\csgdef{footT@text@\the\CE@bnumcount @\the\value{footT}}{#2}%
@@ -853,15 +859,35 @@
 			\setbox0=\hbox{\footfontsize\CE@noteTitem{\print@footT@marker{\the\CE@bnumcount}{\the\value{footT}}}{\unexpanded{#2}}}%
 			\dp0=0pt\relax
 			\ht0=\CE@fudgefactor\wd0\relax
-			\insert\footTins{\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\box0\penalty -50}%
+			\ifbool{CE@incritgroup}{%
+				\global\setbox\CE@local@footTbox=\vbox{%
+					\unvbox\CE@local@footTbox
+					\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\parskip=0pt\relax
+					\box0
+				}%
+			}{%
+				\insert\footTins{\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\box0\penalty -50}%
+			}%
 			\endgroup
 		}%
 		{%
-			\insert\footTins{%
-				\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footTparindent\hangindent=\footThangindent
-				\vskip 2pt %
-				\CE@noteTitem{\print@footT@marker{\the\CE@bnumcount}{\the\value{footT}}}{\unexpanded{#2}}%
+			\begingroup
+			\ifbool{CE@incritgroup}{%
+				\global\setbox\CE@local@footTbox=\vbox{%
+					\unvbox\CE@local@footTbox
+					\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\parskip=0pt\relax
+					\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footTparindent\hangindent=\footThangindent
+					\vskip 2pt %
+					\CE@noteTitem{\print@footT@marker{\the\CE@bnumcount}{\the\value{footT}}}{\unexpanded{#2}}%
+				}%
+			}{%
+				\insert\footTins{%
+					\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footTparindent\hangindent=\footThangindent
+					\vskip 2pt %
+					\CE@noteTitem{\print@footT@marker{\the\CE@bnumcount}{\the\value{footT}}}{\unexpanded{#2}}%
+				}%
 			}%
+			\endgroup
 		}%
 	}%
 	\endgroup
@@ -888,15 +914,35 @@
 			\setbox0=\hbox{\footfontsize\CE@noteEitem{\print@footE@marker{\the\CE@bnumcount}{\the\value{footE}}}{\unexpanded{#2}}}%
 			\dp0=0pt\relax
 			\ht0=\CE@fudgefactor\wd0\relax
-			\insert\footEins{\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\box0\penalty -50}%
+			\ifbool{CE@incritgroup}{%
+				\global\setbox\CE@local@footEbox=\vbox{%
+					\unvbox\CE@local@footEbox
+					\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\parskip=0pt\relax
+					\box0
+				}%
+			}{%
+				\insert\footEins{\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\box0\penalty -50}%
+			}%
 			\endgroup
 		}%
 		{%
-			\insert\footEins{%
-				\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footEparindent\hangindent=\footEhangindent
-				\vskip 2pt %
-				\CE@noteEitem{\print@footE@marker{\the\CE@bnumcount}{\the\value{footE}}}{\unexpanded{#2}}%
+			\begingroup
+			\ifbool{CE@incritgroup}{%
+				\global\setbox\CE@local@footEbox=\vbox{%
+					\unvbox\CE@local@footEbox
+					\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\parskip=0pt\relax
+					\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footEparindent\hangindent=\footEhangindent
+					\vskip 2pt %
+					\CE@noteEitem{\print@footE@marker{\the\CE@bnumcount}{\the\value{footE}}}{\unexpanded{#2}}%
+				}%
+			}{%
+				\insert\footEins{%
+					\leftskip=0pt\relax\rightskip=0pt\relax\parfillskip=0pt plus 1fil\relax\hsize=\textwidth\footfontsize\parindent=\footEparindent\hangindent=\footEhangindent
+					\vskip 2pt %
+					\CE@noteEitem{\print@footE@marker{\the\CE@bnumcount}{\the\value{footE}}}{\unexpanded{#2}}%
+				}%
 			}%
+			\endgroup
 		}%
 	}%
 	\endgroup
@@ -974,6 +1020,7 @@
 
 % "critgroup" enviroment for isolated footnotes in differents critical editions of fragments.
 \newenvironment{critgroup}{%
+	\global\booltrue{CE@incritgroup}%
 	\edef\CE@saved@footT{\the\value{footT}}%
 	\edef\CE@saved@footE{\the\value{footE}}%
 	\setcounter{footT}{0}% Reset counters locally in critgroup.
@@ -988,35 +1035,12 @@
 		\leftlinenumsep=\groupleftlinenumsep
 		\rightlinenumsep=\grouprightlinenumsep
 	}{}%
-	\let\normal@insert\insert
-	\long\def\insert##1##2{%
-		\ifx##1\footTins
-		\global\setbox\CE@local@footTbox=\vbox{%
-			\unvbox\CE@local@footTbox
-			\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\parskip=0pt\relax
-			##2%
-		}%
-		\else\ifx##1\footAins
-		\global\setbox\CE@local@footAbox=\vbox{%
-			\unvbox\CE@local@footAbox
-			\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\parskip=0pt\relax
-			##2%
-		}%
-		\else\ifx##1\footEins
-		\global\setbox\CE@local@footEbox=\vbox{%
-			\unvbox\CE@local@footEbox
-			\baselineskip=0pt\lineskip=0pt\lineskiplimit=-1000pt\parskip=0pt\relax
-			##2%
-		}%
-		\else
-		\normal@insert##1{##2}%
-		\fi\fi\fi
-	}%
 }{%
 	\par
 	\CE@printlocalnotes
 	\setcounter{footT}{\CE@saved@footT}%
 	\setcounter{footE}{\CE@saved@footE}%
+	\global\boolfalse{CE@incritgroup}%
 }
 %
 \endinput
