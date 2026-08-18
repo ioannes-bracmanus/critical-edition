@@ -500,66 +500,33 @@
 	\csgdef{CE@linepage@#1@#2}{#3}%
 }
 
-\newcount\CE@chunkcount
-\newbox\CE@dummybox
-\newbox\CE@stackpatchA
-\newbox\CE@stackpatchAA
-
-\newcommand{\CE@stackset}[1]{%
-	\ifcase#1\or
-	\global\setbox\CE@stackpatchA=\box\CE@one@line\or
-	\global\setbox\CE@stackpatchAA=\box\CE@one@line\fi
-}
-
-\newcommand{\CE@stackget}[1]{%
-	\ifcase#1\or
-	\global\setbox\CE@one@line=\box\CE@stackpatchA\or
-	\global\setbox\CE@one@line=\box\CE@stackpatchAA\fi
-}
+\newbox\CE@stackbox
 
 \newcommand{\CE@drainchunk}{%
 	\unskip\unpenalty\unkern
 	\setbox0=\lastbox
-	\ifvoid0\else
-	\advance\CE@chunkcount by 1\relax
-	\toks0=\expandafter{\the\toks0 \CE@printoneline{0}}%
-	\begingroup\unvbox0\CE@drainchunk\endgroup
+	\ifhbox0
+	\global\setbox\CE@stackbox=\vbox{\unvbox\CE@stackbox \box0}%
+	\CE@drainchunk
 	\fi
 }
 
 \newcommand{\CE@printchunk}{%
-	\ifnum\CE@chunkcount>0\relax
-	\CE@stackget{\the\CE@chunkcount}%
-	\global\advance\CE@absline@num by 1\relax
-	\global\advance\CE@line@num by 1\relax
-	\print@line
-	\global\advance\CE@chunkcount by -1\relax
-	\CE@printchunk
-	\fi
-}
-
-% Line processing: drains lines safely without loop or box type errors.
-\newcommand{\CE@process@lines}{%
-	\begingroup
-	\vbadness=10000
-	\loop\ifdim\ht\CE@rawtext>\z@
-	{\splittopskip=\z@ 
-		\global\setbox\CE@one@line=\vsplit\CE@rawtext to \baselineskip}%
 	\setbox0=\vbox{%
-		\unvbox\CE@one@line
+		\unvbox\CE@stackbox
 		\unskip\unpenalty\unkern
 		\global\setbox\CE@one@line=\lastbox
 	}%
+	\global\setbox\CE@stackbox=\box0
 	\ifhbox\CE@one@line
 	\global\advance\CE@absline@num by 1\relax
 	\global\advance\CE@line@num by 1\relax
 	\print@line
+	\CE@printchunk
 	\fi
-	\repeat
-	\endgroup
 }
 
-\newcommand{\nstart}{%
+\newcommand{\nstart}{% Open the numbered paragraph environment
 	\par
 	\global\booltrue{CE@numberedpar}%
 	\global\setbox\CE@rawtext=\vbox\bgroup
@@ -578,11 +545,23 @@
 	\widowpenalty=\z@
 }
 
-\newcommand{\nend}{%
+\newcommand{\nend}{% Close the numbered paragraph environment.
 	\par
 	\egroup 
 	\global\boolfalse{CE@numberedpar}%
-	\CE@process@lines
+	\begingroup
+	\vbadness=10000
+	\loop\ifvbox\CE@rawtext
+	{\splittopskip=\z@ 
+		\global\setbox\CE@one@line=\vsplit\CE@rawtext to \baselineskip}%
+	\global\setbox\CE@stackbox=\box\voidb@x
+	\setbox0=\vbox{%
+		\unvbox\CE@one@line
+		\CE@drainchunk
+	}%
+	\CE@printchunk
+	\repeat
+	\endgroup
 }
 
 \newdimen\pwidth
@@ -590,7 +569,7 @@
 \newtoggle{CE@inpoetical}
 \global\togglefalse{CE@inpoetical}
 
-\newcommand{\postart}[1][\pwidth]{%
+\newcommand{\postart}[1][\pwidth]{% Open the numbered poetical paragraph.
 	\par
 	\global\booltrue{CE@numberedpar}%
 	\global\toggletrue{CE@inpoetical}%
@@ -614,11 +593,23 @@
 	\advance\rightskip by \dimen0\relax
 }
 
-\newcommand{\poend}{%
+\newcommand{\poend}{% Close the numbered poetical paragraph environment.
 	\par
 	\egroup 
 	\global\boolfalse{CE@numberedpar}%
-	\CE@process@lines
+	\begingroup
+	\vbadness=10000
+	\loop\ifvbox\CE@rawtext
+	{\splittopskip=\z@ 
+		\global\setbox\CE@one@line=\vsplit\CE@rawtext to \baselineskip}%
+	\global\setbox\CE@stackbox=\box\voidb@x
+	\setbox0=\vbox{%
+		\unvbox\CE@one@line
+		\CE@drainchunk
+	}%
+	\CE@printchunk
+	\repeat
+	\endgroup
 }
 
 % Redefine the line in the counter system.
