@@ -790,17 +790,17 @@
 \newcommand{\footCcall}[1]{\textsuperscript{#1)}}
 
 % Superscript foot number appearance.
-\newcommand{\footTmark}[1]{\textsuperscript{#1}}
+\newcommand{\footTmark}[1]{\textsuperscript{#1}\enskip}
 \newcommand{\footAmark}[1]{\textbf{#1}}
-\newcommand{\footEmark}[1]{\textsuperscript{#1}}
-\newcommand{\footCmark}[1]{\textbf{#1)}}
+\newcommand{\footEmark}[1]{\textsuperscript{#1}\enskip}
+\newcommand{\footCmark}[1]{\textbf{#1)}\enskip}
 
 \newcommand{\print@footT@marker}[2]{%
 	\begingroup
 	\setcounter{footT}{#2}%
 	\checkdefempty{\thefootT}%
 	{}%
-	{{\footTmark{\thefootT}}\space}%
+	{{\footTmark{\thefootT}}}%
 	\endgroup
 }
 
@@ -809,7 +809,7 @@
 	\setcounter{footE}{#2}%
 	\checkdefempty{\thefootE}%
 	{}%
-	{{\footEmark{\thefootE}}\space}%
+	{{\footEmark{\thefootE}}}%
 	\endgroup
 }
 
@@ -818,7 +818,7 @@
 	\setcounter{footC}{#2}%
 	\checkdefempty{\thefootC}%
 	{}%
-	{{\footCmark{\thefootC}}\space}%
+	{{\footCmark{\thefootC}}}%
 	\endgroup
 }
 
