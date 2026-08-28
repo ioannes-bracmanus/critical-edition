@@ -707,8 +707,16 @@
 	\CE@write@aux{\string\scFootAAssoc{\the\CE@bnumcount}{\the\CE@footA@count}{0pt}}%
 }
 
-\newcommand{\samelineseparatorA}{\char"02016}
+\newcommand{\samelineseparatorA}{{\char"02016}}
 \newcommand{\lemmaseparatorA}{]}
+\newcommand{\footAentrysep}{\quad}
+\newcommand{\samelinesepbefore}{0.5em}
+\newcommand{\samelinesepafter}{0.5em}
+
+\newcommand{\samelinesepskip}[2]{%
+	\ifstrempty{#1}{}{\gdef\samelinesepbefore{#1}}%
+	\ifstrempty{#2}{}{\gdef\samelinesepafter{#2}}%
+}
 
 \newcommand{\print@footA@entry}[2]{%
 	\begingroup
@@ -728,27 +736,30 @@
 	\def\the@variant{\csuse{footA@var@#1@#2}}%
 	\ifx\line@ref@end\empty
 	\ifcsvoid{CE@last@printed@line}{%
-		\def\print@ref{\footAmark{\line@ref}}%
+		\def\print@ref{\footAmark{\line@ref}\space}%
 	}{%
 		\edef\current@line@sig{#1@\line@ref}%
 		\ifx\CE@last@printed@line\current@line@sig
-		\def\print@ref{\footAmark{\samelineseparatorA}\enskip}%
+		\def\print@ref{\hspace{\samelinesepbefore}\samelineseparatorA\hspace{\samelinesepafter}}%
 		\else
-		\def\print@ref{\footAmark{\line@ref}}%
+		\def\print@ref{\footAentrysep\footAmark{\line@ref}\space}%
 		\fi
 	}%
 	\csxdef{CE@last@printed@line}{#1@\line@ref}%
 	\else
-	\def\print@ref{\footAmark{\line@ref--\line@ref@end}}%
+	\ifcsvoid{CE@last@printed@line}{%
+		\def\print@ref{\footAmark{\line@ref--\line@ref@end}\space}%
+	}{%
+		\def\print@ref{\footAentrysep\footAmark{\line@ref--\line@ref@end}\space}%
+	}%
 	\global\let\CE@last@printed@line\empty
 	\fi
-	\print@ref\space
+	\print@ref
 	\ifcsvoid{footA@lem@#1@#2}{%
 		\the@variant
 	}{%
 		\the@lemma\lemmaseparatorA\enskip \the@variant
 	}%
-	\quad\relax
 	\endgroup
 }
 
