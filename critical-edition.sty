@@ -180,7 +180,7 @@
 	\unpenalty\unskip\unkern
 	\setbox2=\lastbox
 	\ifhbox2
-	\global\setbox\CE@footbox@temp=\hbox{\box2 \unhbox\CE@footbox@temp}%
+	\global\setbox\CE@footbox@temp=\hbox{\box2\unhbox\CE@footbox@temp}%
 	\repeat
 }
 
@@ -209,7 +209,7 @@
 				\CE@makehboxofhboxes
 			}%
 			\endgroup
-			\setbox0=\hbox{\unhbox\CE@footbox@temp \CE@removehboxes}%
+			\setbox0=\hbox{\unhbox\CE@footbox@temp\CE@removehboxes}%
 			\vbox{%
 				\hsize=\textwidth
 				\footfontsize
@@ -219,6 +219,11 @@
 				\parindent=\csuse{foot#4parindent}%
 				\hangindent=\csuse{foot#4hangindent}%
 				\hangafter=1
+				%
+				\tolerance=5000\relax%
+				\emergencystretch=1.5em\relax%
+				\hfuzz=1pt\relax%
+				%
 				\selectfont
 				\unhbox0\par
 			}%
@@ -273,6 +278,11 @@
 		\parindent=\csuse{foot#4parindent}%
 		\hangindent=\csuse{foot#4hangindent}%
 		\hangafter=1
+		%
+		\tolerance=5000\relax%
+		\emergencystretch=1.5em\relax%
+		\hfuzz=1pt\relax%
+		%
 		\selectfont
 		\unhbox0\par
 		\endgroup
@@ -309,7 +319,7 @@
 % Output routine.
 \newcommand*{\simplecritical@doextrafeet}{%
 	\global\CE@prev@notes@printedfalse
-	\global\let\CE@last@printed@line\@empty
+	\global\csundef{CE@last@printed@line}%
 	\CE@printnotes{\footTins}{\CE@display@T}{\footTrule}{T}%
 	\CE@printnotes{\footAins}{\CE@display@A}{\footArule}{A}%
 	\CE@printnotes{\footEins}{\CE@display@E}{\footErule}{E}%
@@ -526,7 +536,7 @@
 	\fi
 }
 
-\newcommand{\nstart}{% Open the numbered paragraph environment
+\newcommand{\nstart}{% Open the numbered paragraph environment.
 	\par
 	\global\booltrue{CE@numberedpar}%
 	\global\setbox\CE@rawtext=\vbox\bgroup
@@ -707,11 +717,11 @@
 	\CE@write@aux{\string\scFootAAssoc{\the\CE@bnumcount}{\the\CE@footA@count}{0pt}}%
 }
 
-\newcommand{\samelineseparatorA}{{\char"02016}}
+\newcommand{\samelineseparatorA}{\textbf{\char"02016}}
 \newcommand{\lemmaseparatorA}{]}
-\newcommand{\footAentrysep}{\quad}
-\newcommand{\samelinesepbefore}{0.5em}
-\newcommand{\samelinesepafter}{0.5em}
+\newcommand{\footAentrysep}{\hskip 1em plus .6em minus .4em}
+\newcommand{\samelinesepbefore}{\enskip}
+\newcommand{\samelinesepafter}{\enskip}
 
 \newcommand{\samelinesepskip}[2]{%
 	\ifstrempty{#1}{}{\gdef\samelinesepbefore{#1}}%
@@ -719,48 +729,59 @@
 }
 
 \newcommand{\print@footA@entry}[2]{%
-	\begingroup
-	\footfontsize
+	\begingroup%
+	\footfontsize%
 	\ifcsdef{footA@line@#1@#2}{%
-		\def\line@ref{\csuse{footA@line@#1@#2}}%
+		\edef\line@ref{\csuse{footA@line@#1@#2}}%
 	}{%
 		\def\line@ref{??}%
 	}%
 	\ifcsdef{footA@endline@#1@#2}{%
 		\edef\line@ref@end{\csuse{footA@endline@#1@#2}}%
 	}{%
-		\let\line@ref@end\empty
+		\let\line@ref@end\@empty%
 	}%
-	\def\lemma##1{\unskip}% 
+	\def\lemma##1{\unskip}%
 	\def\the@lemma{\csuse{footA@lem@#1@#2}}%
 	\def\the@variant{\csuse{footA@var@#1@#2}}%
-	\ifx\line@ref@end\empty
-	\ifcsvoid{CE@last@printed@line}{%
-		\def\print@ref{\footAmark{\line@ref}\space}%
+	\edef\current@line@sig{#1@\line@ref}%
+	%
+	\ifx\line@ref@end\@empty%
+	\ifdefequal{\CE@last@printed@line}{\current@line@sig}{%
+		\def\print@ref{\samelinesepbefore\samelineseparatorA\samelinesepafter\ignorespaces}%
 	}{%
-		\edef\current@line@sig{#1@\line@ref}%
-		\ifx\CE@last@printed@line\current@line@sig
-		\def\print@ref{\hspace{\samelinesepbefore}\samelineseparatorA\hspace{\samelinesepafter}}%
-		\else
-		\def\print@ref{\footAentrysep\footAmark{\line@ref}\space}%
-		\fi
+		\def\print@ref{\footAmark{\line@ref}\nobreak\enskip}%
 	}%
-	\csxdef{CE@last@printed@line}{#1@\line@ref}%
-	\else
-	\ifcsvoid{CE@last@printed@line}{%
-		\def\print@ref{\footAmark{\line@ref--\line@ref@end}\space}%
-	}{%
-		\def\print@ref{\footAentrysep\footAmark{\line@ref--\line@ref@end}\space}%
-	}%
-	\global\let\CE@last@printed@line\empty
-	\fi
-	\print@ref
+	\csxdef{CE@last@printed@line}{\current@line@sig}%
+	\else%
+	\def\print@ref{\footAmark{\line@ref--\line@ref@end}\nobreak\enskip}%
+	\csxdef{CE@last@printed@line}{\current@line@sig @end}%
+	\fi%
+	%
+	\print@ref%
 	\ifcsvoid{footA@lem@#1@#2}{%
-		\the@variant
+		\the@variant%
 	}{%
-		\the@lemma\lemmaseparatorA\enskip \the@variant
+		\the@lemma\lemmaseparatorA\enskip\the@variant%
 	}%
-	\endgroup
+	%
+	\unskip%
+	\def\CE@next@is@sameline{0}%
+	\ifx\line@ref@end\@empty%
+	\ifcsdef{footA@line@#1@\the\numexpr#2+1\relax}{%
+		\edef\CE@curr@line{\csuse{footA@line@#1@#2}}%
+		\edef\CE@next@line{\csuse{footA@line@#1@\the\numexpr#2+1\relax}}%
+		\ifx\CE@curr@line\CE@next@line%
+		\def\CE@next@is@sameline{1}%
+		\fi%
+	}{}%
+	\fi%
+	%
+	\ifnum\CE@next@is@sameline=1\relax%
+	\else%
+	\footAentrysep%
+	\fi%
+	\endgroup%
 }
 
 \gdef\CE@display@A{quad}
